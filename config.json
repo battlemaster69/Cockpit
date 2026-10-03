@@ -41,7 +41,11 @@
     "dip_min_pct": 2,
     "min_volume_usd": 20000000,
     "pumped_before_pct": 15,
-    "alert_after_hours": 4
+    "alert_after_hours": 4,
+    "early_window_hours": 10,
+    "early_min_excess_pct": 3,
+    "early_max_bounce_pct": 10,
+    "extended_pct": 15
   },
 
   "thresholds": {

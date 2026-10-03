@@ -194,6 +194,9 @@ tr.click { cursor: pointer; }
 .srow .big { font-family: var(--num); font-weight: 700; font-size: 1.25rem; line-height: 1.1; text-align: right; font-variant-numeric: tabular-nums; }
 .srow .sub { display: block; }
 .srow .tag { white-space: nowrap; }
+.tag.good { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 50%, transparent); }
+.tag.bad { color: var(--hot); border-color: color-mix(in srgb, var(--hot) 50%, transparent); }
+.tag.meh { color: var(--dim); }
 .tag.hot { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
 </style>
 </head>
@@ -495,10 +498,10 @@ function renderAlerts() {
     <div class="panel">${a.length ? a.map(x => `<div class="alert"><b style="color:${col[x.level] || "var(--ink)"}">${esc(x.title)}</b><p>${esc(x.body)}</p><p>${agoTs(x.ts)}</p></div>`).join("")
       : `<p class="empty" style="padding:16px">No alerts yet.</p>`}</div>`;
 }
-function strengthRow(x, main, mainLabel, sub) {
+function strengthRow(x, main, mainLabel, sub, extra = "") {
   const pumped = x.before != null && x.before >= (DATA.strength?.pumped_before_pct ?? 15);
   return `<button class="row srow" data-coin="${esc(x.id)}">
-    <span><span class="sym">${esc(x.sym)}</span>${SHORT.has(x.id) ? `<span class="star" aria-label="Shortlisted">★</span>` : ""}${pumped ? `<span class="tag hot" title="Gain in the week before the dip">pumped ${pct(x.before, 0)}</span>` : ""}
+    <span><span class="sym">${esc(x.sym)}</span>${SHORT.has(x.id) ? `<span class="star" aria-label="Shortlisted">★</span>` : ""}${pumped ? `<span class="tag hot" title="Gain in the week before the dip">pumped ${pct(x.before, 0)}</span>` : ""}${extra}
       <span class="sub">${sub}</span></span>
     <span class="mini">${spark(x.spark, "var(--ink)", 26)}</span>
     <span><span class="big ${tone(main)}">${pct(main)}</span><span class="sub" style="text-align:right">${mainLabel}</span></span>
@@ -513,12 +516,28 @@ function renderStrength() {
   const d = s.dip;
   if (!d) return `<p class="hint" style="margin-top:14px">No market dip of 2% or more in the last 48 hours. This tab fills in after the next one.</p>${market}`;
   const sinceLow = (Date.now() / 1000 - d.low_ts) / 3600;
+  const status = { running: ["good", "running"], holding: ["meh", "holding"], faded: ["bad", "faded"] };
+  const early = x => strengthRow(x, x.since, "since flagged",
+    `Flagged ${clock(new Date(x.ts * 1000))} at ${pct(x.bounce)} off low · best since ${pct(x.best)}`,
+    `<span class="tag ${status[x.status][0]}">${status[x.status][1]}</span>`);
+  const strong = (s.early || []).filter(x => x.pumped), weak = (s.early || []).filter(x => !x.pumped);
+  const rec = s.score?.pumped, recO = s.score?.other;
+  const track = rec ? `Track record so far: ${rec.n} early flag${rec.n > 1 ? "s" : ""} on coins that pumped before, ${rec.up} up 2%+ and ${rec.down} down 2%+ a day later, average ${pct(rec.avg)}${recO ? `; ${recO.n} without a prior pump averaged ${pct(recO.avg)}` : ""}.`
+    : "Track record: each flag is scored 24 hours after it fires, and the results build up here.";
+  const win = s.early_window_hours ?? 10, windowOpen = sinceLow <= win;
   return `<h2>After the ${Math.abs(d.drop).toFixed(1)}% dip</h2>
-    <p class="hint">The top 100 coins (median) fell ${Math.abs(d.drop).toFixed(1)}% from ${clock(new Date(d.peak_ts * 1000))} to ${clock(new Date(d.low_ts * 1000))}${d.btc_drop != null ? `, BTC ${pct(d.btc_drop)}` : ""}. Since that low the market is <b>${pct(d.bounce)}</b>.${sinceLow < 3 ? " The low is recent, so leaders are still sorting themselves out." : ""}</p>
+    <p class="hint">The top 100 coins (median) fell ${Math.abs(d.drop).toFixed(1)}% from ${clock(new Date(d.peak_ts * 1000))} to ${clock(new Date(d.low_ts * 1000))}${d.btc_drop != null ? `, BTC ${pct(d.btc_drop)}` : ""}. Since that low the market is <b>${pct(d.bounce)}</b>.</p>
     ${market}
+    <h2>Early strength</h2>
+    <p class="hint">Caught while the bounce was still small: took a real hit, then beat the market by 3%+ in at least 2 of the last 3 hours, while still under 10% off its low, and pumped ${s.pumped_before_pct}%+ the week before. You get a phone alert the hour one appears. Big number: move since it was flagged. <b>Faded</b> means it gave back 3%+, the sold-into-strength kind to avoid. ${windowOpen ? `The window stays open for ${win} hours after the low.` : `The ${win}-hour window after the low has closed for this dip.`}</p>
+    ${strong.map(early).join("") || `<p class="empty" style="padding:16px">${windowOpen ? "Nothing yet. Checked every hour." : "None this dip."}</p>`}
+    <p class="hint">${track}</p>
+    ${weak.length ? `<details class="panel" style="padding:10px 14px"><summary class="sub" style="cursor:pointer">${weak.length} more early bounce${weak.length > 1 ? "s" : ""} without a prior pump (mostly noise in testing)</summary>
+      <div style="margin-top:10px">${weak.map(early).join("")}</div></details>` : ""}
     <h2>Fought back</h2>
-    <p class="hint">Took at least the market's hit, then bounced harder than the market. Big number: gain off its own low, with how much better that is than the market's bounce. A "pumped" tag means it rose ${DATA.strength?.pumped_before_pct ?? 15}%+ in the week before the dip and still fought back: the classic strength signal.</p>
-    ${s.fought.map(x => strengthRow(x, x.bounce, `off low, ${signed(x.vs_mkt)} vs mkt`, `Dip ${pct(x.drop)} · won back ${x.recovered != null ? x.recovered.toFixed(0) + "%" : "–"}`)).join("")
+    <p class="hint">The full picture: took at least the market's hit, then bounced harder than the market. Big number: gain off its own low. <b>Extended</b> means it's already ${s.extended_pct}%+ off its low; buying now is chasing.</p>
+    ${s.fought.map(x => strengthRow(x, x.bounce, `off low, ${signed(x.vs_mkt)} vs mkt`, `Dip ${pct(x.drop)} · won back ${x.recovered != null ? x.recovered.toFixed(0) + "%" : "–"}`,
+        x.extended ? `<span class="tag bad">extended</span>` : "")).join("")
       || `<p class="empty" style="padding:16px">Nothing has out-bounced the market yet.</p>`}
     <h2>Held firm</h2>
     <p class="hint">Normally volatile coins that barely dipped and are already above their pre-dip price.</p>

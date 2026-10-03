@@ -733,12 +733,36 @@ def deriv_summary(d):
 
 # ------------------------------------------------------------------ dip strength
 
+def score_flags(mem, prices):
+    """Score each early flag 24 hours after it fired (its track record), then forget it a day later."""
+    for f in mem["flags"]:
+        if not f.get("scored") and NOW_TS - f["ts"] >= 86400 and prices.get(f["id"]):
+            f["scored"] = True
+            mem["score"].append({"sym": f["sym"], "ts": f["ts"], "pumped": f["pumped"], "bounce": f["bounce"],
+                                 "result": r2((prices[f["id"]] / f["price"] - 1) * 100, 2),
+                                 "best": r2((f["best"] / f["price"] - 1) * 100, 2)})
+    mem["flags"] = [f for f in mem["flags"] if NOW_TS - f["ts"] < 72 * 3600]
+    mem["score"] = mem["score"][-200:]
+
+
+def score_summary(score):
+    def s(rows):
+        if not rows:
+            return None
+        return {"n": len(rows), "up": sum(1 for x in rows if x["result"] > 2), "down": sum(1 for x in rows if x["result"] < -2),
+                "avg": r2(sum(x["result"] for x in rows) / len(rows), 2)}
+    return {"pumped": s([x for x in score if x["pumped"]]), "other": s([x for x in score if not x["pumped"]])}
+
+
 @module("Dip strength")
-def dip_strength(rows):
+def dip_strength(rows, history):
     """After a market dip in the last 48h, which coins took the hit and fought back harder than the market
     ("fought back"), and which barely dipped ("held firm"). Uses CoinGecko's hourly 7-day sparklines.
-    Market = median path of the top 100 coins, each relative to 48h ago."""
+    Market = median path of the top 100 coins, each relative to 48h ago.
+    "Early" flags catch the fight-back while the bounce is still small; each is followed afterwards
+    (running / holding / faded) and scored after 24 hours, so the rule builds its own track record."""
     st = CONFIG.get("strength", {})
+    mem = history.setdefault("strength", {"flags": [], "score": []})
     coins = [r for r in rows if len(r["_spark"]) >= 100]
     top = [r for r in coins if r.get("rank") and r["rank"] <= 100]
     if len(top) < 50:
@@ -756,8 +780,12 @@ def dip_strength(rows):
             worst = (v / mkt[peak] - 1, peak, i)
     mdrop, ip, it = worst
     hours_ago = lambda i: n - 1 - i  # noqa: E731  sparkline points are hourly, the last one is now
+    prices = {r["id"]: r["price"] for r in coins if r.get("price")}
+    score_flags(mem, prices)
     out = {"market_path": [round((v / mkt[0] - 1) * 100, 2) for v in mkt], "dip": None, "fought": [], "held": [],
-           "pumped_before_pct": st.get("pumped_before_pct", 15)}
+           "early": [], "new_early": [], "score": score_summary(mem["score"]),
+           "pumped_before_pct": st.get("pumped_before_pct", 15), "extended_pct": st.get("extended_pct", 15),
+           "early_window_hours": st.get("early_window_hours", 10)}
     if mdrop * 100 > -st.get("dip_min_pct", 2):
         return out
     m_low = min(mkt[ip:])
@@ -766,6 +794,11 @@ def dip_strength(rows):
     out["dip"] = {"drop": r2(mdrop * 100, 2), "peak_ts": NOW_TS - hours_ago(ip) * 3600, "low_ts": NOW_TS - hours_ago(it) * 3600,
                   "bounce": r2(m_bounce * 100, 2), "now_vs_peak": r2((mkt[-1] / mkt[ip] - 1) * 100, 2),
                   "btc_drop": r2((min(btc[ip:]) / btc[ip] - 1) * 100, 2) if btc else None}
+    peak_ts = out["dip"]["peak_ts"]
+    same_dip = lambda f: abs(f["dip"] - peak_ts) <= 12 * 3600  # noqa: E731  peak time wobbles by an hour between runs
+    flagged = {f["id"] for f in mem["flags"] if same_dip(f)}
+    early_open = hours_ago(it) <= st.get("early_window_hours", 10)
+    m_moves = [mkt[k] / mkt[k - 1] - 1 for k in (n - 3, n - 2, n - 1)]
     for r in coins:
         if (r.get("vol") or 0) < st.get("min_volume_usd", 20e6):
             continue
@@ -781,12 +814,36 @@ def dip_strength(rows):
              "net": r2((now / pre - 1) * 100, 2),
              "before": r2((pre / r["_spark"][0] - 1) * 100, 1) if r["_spark"][0] else None,  # from ~7 days ago to the dip
              "spark": [round(v, 8) for v in s[::2]]}
+        x["extended"] = x["bounce"] >= st.get("extended_pct", 15)
+        # EARLY: took a real hit, now out-bouncing the market by 3%+, steadily (beat it in 2 of the last 3 hours),
+        # and still under 10% off its low. Replayed on the Oct 2-3 dip, prior-pump coins passing this went 7 of 9 positive.
+        if early_open and r["id"] not in flagged and drop <= 0.8 * mdrop and x["vs_mkt"] >= st.get("early_min_excess_pct", 3) \
+                and x["bounce"] <= st.get("early_max_bounce_pct", 10):
+            beat = sum(1 for k, m in zip((n - 3, n - 2, n - 1), m_moves) if s[k] / s[k - 1] - 1 > m)
+            if beat >= 2:
+                pumped = (x["before"] or 0) >= st.get("pumped_before_pct", 15)
+                mem["flags"].append({"id": r["id"], "sym": r["sym"], "name": r["name"], "dip": peak_ts, "ts": NOW_TS,
+                                     "price": now, "best": now, "bounce": x["bounce"], "vs_mkt": x["vs_mkt"],
+                                     "before": x["before"], "pumped": pumped})
+                out["new_early"].append(r["id"])
         if drop <= mdrop and (x["recovered"] or 0) >= 50 and x["vs_mkt"] > 0:
             out["fought"].append(x)  # took at least the market's hit, won back half or more, out-bounced the market
         elif drop > mdrop / 3 and 0 <= x["net"] <= 15 and (r.get("dvol") or 0) >= 2 and (r.get("rank") or 999) <= 300:
             out["held"].append(x)  # normally volatile, barely dipped, above its pre-dip price (but not a pump of its own)
     out["fought"] = sorted(out["fought"], key=lambda x: -x["vs_mkt"])[:20]
     out["held"] = sorted(out["held"], key=lambda x: -x["net"])[:10]
+    # follow every flag of this dip: did the early strength keep going, or get sold?
+    for f in mem["flags"]:
+        if not same_dip(f) or not prices.get(f["id"]):
+            continue
+        p = prices[f["id"]]
+        f["best"] = max(f["best"], p)
+        since = (p / f["price"] - 1) * 100
+        out["early"].append({**{k: f[k] for k in ("id", "sym", "name", "ts", "bounce", "vs_mkt", "before", "pumped")},
+                             "since": r2(since, 2), "best": r2((f["best"] / f["price"] - 1) * 100, 2),
+                             "status": "running" if since >= 3 else "faded" if since <= -3 else "holding",
+                             "spark": [round(v, 8) for v in paths[f["id"]][::2]] if f["id"] in paths else None})
+    out["early"].sort(key=lambda x: (not x["pumped"], x["ts"]))
     return out
 
 
@@ -1070,12 +1127,20 @@ def collect_alerts(markets, shortlist_out, events, mvrv, state, strength=None):
         alerts.append({"key": "mvrv<1", "level": "good", "title": "BTC MVRV below 1",
                        "body": f"MVRV {mvrv['mvrv']:.2f}. Price is under the average holder's cost, a classic bear-bottom zone."})
     dip = (strength or {}).get("dip")
+    mine = {c["id"] for c in shortlist_out}
+    # early strength: alert the hour it shows, while the bounce is still small (prior-pump coins only: the rest was mostly noise)
+    fresh = [x for x in (strength or {}).get("early", []) if x["id"] in strength["new_early"] and x["pumped"]]
+    if fresh:
+        alerts.append({"key": f"early:{NOW_TS}", "level": "good",
+                       "title": "Early strength: " + ", ".join(x["sym"] + ("*" if x["id"] in mine else "") for x in fresh[:5]),
+                       "body": "; ".join(f'{x["sym"]} {x["bounce"]:+.1f}% off its low ({x["vs_mkt"]:+.1f}% vs market), pumped '
+                                         f'{x["before"]:+.0f}% the week before' for x in fresh[:5])
+                               + f". Market {dip['drop']:.1f}% dip, {dip['bounce']:+.1f}% off its low. Still early, not a guarantee."})
     wait = CONFIG.get("strength", {}).get("alert_after_hours", 4) * 3600
     # once per dip, after the leaders have had a few hours to show themselves
     if dip and strength["fought"] and NOW_TS - dip["low_ts"] >= wait \
             and abs(dip["peak_ts"] - state.get("dip_alerted", 0)) > 12 * 3600:
         state["dip_alerted"] = dip["peak_ts"]
-        mine = {c["id"] for c in shortlist_out}
         top = ", ".join(f'{x["sym"]}{"*" if x["id"] in mine else ""} {x["bounce"]:+.0f}%' for x in strength["fought"][:6])
         alerts.append({"key": f"dip:{dip['peak_ts']}", "level": "good",
                        "title": f"Fighting back after the {dip['drop']:.1f}% dip",
@@ -1124,7 +1189,7 @@ def main():
     # -------- universe prices (hourly: they feed dip strength) and scoring (every few hours)
     universe_doc = load(UNIVERSE_PATH, None)
     rows = fetch_universe_markets()
-    strength = dip_strength(rows) if rows else None
+    strength = dip_strength(rows, history) if rows else None
     if full:
         fin_all = fetch_financials()
         if fin_all is not None:
