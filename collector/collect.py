@@ -751,7 +751,10 @@ def annotate_strength(strength, deriv, hl, perp_map, mcaps):
             d = deriv.get(x["id"]) or {}
             s = d.get("oi_series") or []
             at_low = series_at(s, NOW_TS - low_ts, tolerance=2 * 3600) if s else None
-            x["oi_chg"] = r2(pct_change(d.get("oi_usd"), at_low), 1)
+            usd_chg = pct_change(d.get("oi_usd"), at_low)
+            # OI is in dollars, so a 20% price rise alone lifts it 20%: take the price move out to count positions
+            x["oi_chg"] = r2(((1 + usd_chg / 100) / (1 + x["px_mlow"] / 100) - 1) * 100, 1) \
+                if usd_chg is not None and x.get("px_mlow") is not None else None
             x["move"] = move_type(x.get("bounce_now", x.get("bounce")), x["oi_chg"])  # early flags: live bounce, not the one at flag time
             x["oi_mcap"] = r2(d["oi_usd"] / mcaps[x["id"]] * 100, 1) if d.get("oi_usd") and mcaps.get(x["id"]) else None
             pn = perp_map.get(x["id"])
@@ -863,7 +866,8 @@ def dip_strength(rows, history):
              "before": r2((pre / r["_spark"][0] - 1) * 100, 1) if r["_spark"][0] else None,  # from ~7 days ago to the dip
              "spark": [round(v, 8) for v in s[::2]]}
         x["extended"] = x["bounce"] >= st.get("extended_pct", 15)
-        live_bounce[r["id"]] = x["bounce"]
+        x["px_mlow"] = r2((now / s[it] - 1) * 100, 2)  # price change since the market's low hour (for OI in coin terms)
+        live_bounce[r["id"]] = (x["bounce"], x["px_mlow"])
         # EARLY: took a real hit, now out-bouncing the market by 3%+, steadily (beat it in 2 of the last 3 hours),
         # and still under 10% off its low. Replayed on the Oct 2-3 dip, prior-pump coins passing this went 7 of 9 positive.
         if early_open and r["id"] not in flagged and drop <= 0.8 * mdrop and x["vs_mkt"] >= st.get("early_min_excess_pct", 3) \
@@ -890,7 +894,8 @@ def dip_strength(rows, history):
         since = (p / f["price"] - 1) * 100
         out["early"].append({**{k: f[k] for k in ("id", "sym", "name", "ts", "bounce", "vs_mkt", "before", "pumped")},
                              "since": r2(since, 2), "best": r2((f["best"] / f["price"] - 1) * 100, 2),
-                             "bounce_now": live_bounce.get(f["id"]),
+                             "bounce_now": (live_bounce.get(f["id"]) or (None, None))[0],
+                             "px_mlow": (live_bounce.get(f["id"]) or (None, None))[1],
                              "status": "running" if since >= 3 else "faded" if since <= -3 else "holding",
                              "spark": [round(v, 8) for v in paths[f["id"]][::2]] if f["id"] in paths else None})
     out["early"].sort(key=lambda x: (not x["pumped"], x["ts"]))
