@@ -9,6 +9,7 @@ A personal crypto tracker. It runs on GitHub's servers (free, so your PC can sta
 - Ethereum contracts for wallet tracking are found automatically, so there's nothing to look up by hand.
 - **Positioning across Binance, Bybit and OKX** (via Coinalyze): long/short account ratio, liquidations, total open interest and taker buy share, for BTC, ETH, SOL and every shortlisted coin.
 - **Strength tab:** after any market dip of 2% or more (median of the top 100) in the last 48 hours, ranks which liquid coins took the hit and fought back harder than the market, and which barely dipped. Coins that pumped the week before and still fought back get a "pumped" tag. **Early strength** flags the fight-back within 10 hours of the low while the bounce is still under 10%, alerts your phone that hour (coins that pumped before only), then follows each flag (running, holding or faded) and scores it after 24 hours into a track record. Coins already 15%+ off their low are tagged "extended". Settings under `strength` in `config.json`.
+- **Radar tab:** coins starting a move on their own in a calm market. Every 15 minutes it scans ~175 liquid coins (Binance hourly volume and aggressive-buy share, Coinalyze funding): "breaking out" = new 24h high on 3x+ normal volume while still only 2-5% up and funding at or below zero (phone alert; right about 1 in 5 in a 21-day backtest, 3.6x random). Hourly, "loading" lists coins whose futures bets grew 10%+ in 12h with flat price. Each flag is tracked and scored after 24h. Settings under `radar` in `config.json`.
 - **Exchange wallets on three chains:** Ethereum and BNB Chain tokens transfer by transfer; native coins (ETH, BNB, SOL) and Solana tokens through hourly exchange balances.
 
 ## How often things update (and why it stays free)
@@ -62,6 +63,9 @@ GitHub's built-in schedule is best-effort and can skip hours, especially on new 
 2. On cron-job.org, create a job: URL `https://api.github.com/repos/YOUR-USERNAME/REPO-NAME/actions/workflows/collect.yml/dispatches`, every hour at minute 12, method **POST**.
 3. Headers: `Accept: application/vnd.github+json`, `Authorization: Bearer YOUR-TOKEN`, `X-GitHub-Api-Version: 2022-11-28`, `Content-Type: application/json`.
 4. Body: `{"ref":"main","inputs":{"auto":"true"}}`. A test run should answer **204**, and a run appears under Actions.
+
+### D3. Radar timer (every 15 minutes)
+A second cron-job.org job, same token and headers as D2, but URL `https://api.github.com/repos/YOUR-USERNAME/REPO-NAME/actions/workflows/radar.yml/dispatches`, schedule every 15 minutes, same body `{"ref":"main","inputs":{"auto":"true"}}`.
 
 ### E. Phone
 - Open `https://YOUR-USERNAME.github.io/REPO-NAME/` and add it to your home screen.

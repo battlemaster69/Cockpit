@@ -37,6 +37,9 @@ CACHE_PATH = DATA / "cache.json"
 UNIVERSE_PATH = DOCS / "universe.json"
 OUT_PATH = DOCS / "data.json"
 SHORTLIST_PATH = DOCS / "shortlist.json"
+RADAR_PATH = DOCS / "radar.json"            # written by the 15-minute radar scan (--radar)
+RADAR_STATE_PATH = DATA / "radar_state.json"
+BINANCE = "https://data-api.binance.vision/api/v3"  # Binance's public market-data host: answers GitHub's US servers
 
 NOW = datetime.now(timezone.utc)
 NOW_TS = int(NOW.timestamp())
@@ -271,7 +274,7 @@ def fetch_universe_markets():
     rows = [market_row(r) for r in cg_markets(pages=pages)]
     rows = [r for r in rows if r["mcap"] and not excluded(r)]
     rows.sort(key=lambda r: r["mcap"], reverse=True)
-    return rows[:size]
+    return rows  # everything fetched (~700): the universe uses the top `universe_size`, the radar all of it
 
 
 @module("CoinGecko (shortlist)")
@@ -678,12 +681,15 @@ def pct_val(v):
 @module("Coinalyze (positioning)")
 def fetch_positioning(targets, cache):
     """Open interest, liquidations, long/short account ratio and taker buy share, summed or averaged
-    across Binance, Bybit and OKX. targets: key -> (ticker, include taker volume, full); full=False fetches
-    open interest only (used for Strength-list coins, to keep within the free 40 calls a minute)."""
+    across Binance, Bybit and OKX. targets: key -> (ticker, include taker volume, full, one venue); full=False
+    fetches open interest only (Strength and Radar coins), one=True only the Binance perp (Radar's ~150 coins),
+    to keep within the free 40 calls a minute."""
     mk = cz_markets(cache)
     sets = {}
-    for key, (sym, *_) in targets.items():
+    for key, (sym, *opt) in targets.items():
         rows = mk.get(sym.upper()) or mk.get("1000" + sym.upper())
+        if rows and len(opt) > 2 and opt[2]:
+            rows = [next((r for r in rows if r[1].lower().startswith("binance")), rows[0])]
         if rows:
             sets[key] = rows
     if not sets:
@@ -906,6 +912,242 @@ def dip_strength(rows, history):
                              "spark": [round(v, 8) for v in paths[f["id"]][::2]] if f["id"] in paths else None})
     out["early"].sort(key=lambda x: (not x["pumped"], x["ts"]))
     return out
+
+
+# ------------------------------------------------------------------ radar (coins moving on their own in a calm market)
+# Backtested on 21 days of Binance hourly candles and Coinalyze futures data (Oct 2026), against "calm-market pumps"
+# (+10% within 3h while the market median stayed within 2%). Nothing reliably warned hours ahead; the useful signals
+# catch the start of a move:
+#   breakout = new 24h high on 3x+ normal volume while still only 2-5% up, funding <= 0: right ~1 in 5 (3.6x random)
+#   loading  = futures open interest (in coins) +10% in 12h with price flat and buyers >= 55%: avg +2.8% next 24h
+
+def bn_klines(sym, interval, limit):
+    """Binance candles: (open time s, high, low, close, quote volume, aggressive-buy quote volume)."""
+    k = get_json(f"{BINANCE}/klines", params={"symbol": sym, "interval": interval, "limit": limit}, retries=1)
+    return [(int(c[0]) // 1000, fnum(c[2]), fnum(c[3]), fnum(c[4]), fnum(c[7], 0), fnum(c[10], 0)) for c in k]
+
+
+@module("Radar universe")
+def radar_universe(rows, cache):
+    """Top-500 coins with enough volume that trade against USDT on Binance (price-checked: the same ticker can be
+    a different coin). Saved for the 15-minute scan, which can't afford CoinGecko calls of its own."""
+    st = CONFIG.get("radar", {})
+    ex = cache.get("bn_symbols")
+    if not ex or NOW_TS - ex.get("ts", 0) > 86400:
+        info = get_json(f"{BINANCE}/exchangeInfo")
+        ex = {"ts": NOW_TS, "s": sorted(s["symbol"] for s in info["symbols"]
+                                        if s.get("status") == "TRADING" and s.get("quoteAsset") == "USDT")}
+        cache["bn_symbols"] = ex
+    have = set(ex["s"])
+    px = {p["symbol"]: fnum(p.get("price")) for p in get_json(f"{BINANCE}/ticker/price")}
+    out = []
+    for r in rows:
+        b = r["sym"] + "USDT"
+        if (r.get("rank") or 999) <= st.get("max_rank", 500) and (r.get("vol") or 0) >= st.get("min_volume_usd", 5e6) \
+                and b in have and px.get(b) and r.get("price") and abs(px[b] / r["price"] - 1) <= 0.1:
+            out.append({"id": r["id"], "sym": r["sym"], "name": r["name"], "rank": r["rank"], "bsym": b, "mcap": r["mcap"]})
+    if len(out) < 30:
+        raise RuntimeError(f"only {len(out)} coins matched on Binance")
+    cache["radar_universe"] = {"ts": NOW_TS, "coins": out}
+    return out
+
+
+def follow_flags(mem, prices, hours=24):
+    """Follow each flag since it fired (running / holding / faded) and score it after `hours`: the track record."""
+    active = []
+    for f in mem["flags"]:
+        p = prices.get(f["id"])
+        if p:
+            f["best"], f["last"] = max(f.get("best", f["price"]), p), p
+        if NOW_TS - f["ts"] >= hours * 3600:
+            if not f.get("scored") and f.get("last"):
+                f["scored"] = True
+                mem["score"].append({"sym": f["sym"], "ts": f["ts"], "kind": f["kind"],
+                                     "result": r2((f["last"] / f["price"] - 1) * 100, 2),
+                                     "best": r2((f["best"] / f["price"] - 1) * 100, 2)})
+            continue
+        since = ((f.get("last") or f["price"]) / f["price"] - 1) * 100
+        active.append({**{k: v for k, v in f.items() if k != "scored"}, "since": r2(since, 2),
+                       "best_pct": r2((f["best"] / f["price"] - 1) * 100, 2),
+                       "status": "running" if since >= 3 else "faded" if since <= -3 else "holding"})
+    mem["flags"] = [f for f in mem["flags"] if NOW_TS - f["ts"] < (hours + 24) * 3600]
+    mem["score"] = mem["score"][-300:]
+    return sorted(active, key=lambda x: -x["ts"])
+
+
+def flag_summary(score):
+    out = {}
+    for kind in sorted({x["kind"] for x in score}):
+        rows = [x for x in score if x["kind"] == kind]
+        out[kind] = {"n": len(rows), "up": sum(1 for x in rows if x["result"] > 2), "down": sum(1 for x in rows if x["result"] < -2),
+                     "avg": r2(sum(x["result"] for x in rows) / len(rows), 2)}
+    return out
+
+
+@module("Radar loading")
+def radar_loading(universe, deriv, hl, perp_map, history):
+    """Hourly: coins whose futures open interest (counted in coins) grew 10%+ in 12h while price stayed flat and
+    buyers led the last hour. A slower 1-2 day setup, not a timing signal."""
+    st = CONFIG.get("radar", {})
+    mem = history.setdefault("radar_loading", {"flags": [], "score": []})
+    data = {}
+    for c in universe:
+        if not (deriv.get(c["id"]) or {}).get("oi_series"):
+            continue
+        try:
+            k = bn_klines(c["bsym"], "1h", 30)
+        except Exception:  # noqa: BLE001
+            continue
+        if len(k) >= 14:
+            data[c["id"]] = (c, k)
+        time.sleep(0.03)
+    if len(data) < 20:
+        raise RuntimeError(f"only {len(data)} coins with candles and futures data")
+    mkt3 = statistics.median(k[-1][3] / k[-4][3] - 1 for _, k in data.values()) * 100
+    calm = abs(mkt3) < st.get("calm_mkt_3h_pct", 1.5)
+    prices = {cid: k[-1][3] for cid, (_, k) in data.items()}
+    items = []
+    for cid, (c, k) in data.items():
+        s = deriv[cid]["oi_series"]
+        oi_then = series_at(s, 12 * 3600, tolerance=2 * 3600)
+        p_now, p_then = k[-1][3], k[-13][3]
+        if not oi_then or not p_now or not p_then:
+            continue
+        oi12 = ((s[-1][1] / p_now) / (oi_then / p_then) - 1) * 100  # in coins: the price move taken out
+        p12 = (p_now / p_then - 1) * 100
+        last = k[-2]  # last complete hour
+        buyers = last[5] / last[4] * 100 if last[4] else None
+        if oi12 >= st.get("loading_oi_12h_pct", 10) and abs(p12) < st.get("loading_price_flat_pct", 3) \
+                and (buyers or 0) >= st.get("loading_buyers_pct", 55):
+            pn = perp_map.get(cid)
+            items.append({"id": cid, "sym": c["sym"], "name": c["name"], "rank": c["rank"], "oi12": r2(oi12, 1),
+                          "p12": r2(p12, 2), "buyers": r2(buyers, 0), "oi_usd": s[-1][1],
+                          "oi_mcap": r2(s[-1][1] / c["mcap"] * 100, 1) if c.get("mcap") else None,
+                          "funding": r2(hl[pn]["funding_8h_pct"], 4) if pn and pn in hl else None,
+                          "spark": [round(x[3], 8) for x in k[-25:]]})
+    if calm:  # the backtest only counted calm markets
+        recent = {f["id"] for f in mem["flags"] if NOW_TS - f["ts"] < 86400}
+        for x in items:
+            if x["id"] not in recent:
+                mem["flags"].append({"id": x["id"], "sym": x["sym"], "name": x["name"], "kind": "loading", "ts": NOW_TS,
+                                     "price": prices[x["id"]], "best": prices[x["id"]], "oi12": x["oi12"], "p12": x["p12"],
+                                     "buyers": x["buyers"]})
+    return {"calm": calm, "mkt3": r2(mkt3, 2), "checked": len(data), "items": sorted(items, key=lambda x: -x["oi12"]),
+            "flags": follow_flags(mem, prices), "score": flag_summary(mem["score"])}
+
+
+def radar_futures(ids, info, cache):
+    """Funding (and open interest over 6h, in coins) for breakout candidates only: a handful of Coinalyze calls."""
+    mk = (cache.get("cz") or {}).get("m") or {}
+    perp = {}
+    for cid in ids:
+        rows = mk.get(info[cid]["sym"].upper()) or mk.get("1000" + info[cid]["sym"].upper()) or []
+        p = next((r for r in rows if r[1].lower().startswith("binance")), rows[0] if rows else None)
+        if p:
+            perp[cid] = p[0]
+    if not perp or not CZ_KEY:
+        return {}
+    syms = sorted(set(perp.values()))[:20]
+    fr = {r["symbol"]: fnum(r.get("value")) for r in cz_get("funding-rate", syms)}
+    oi = cz_history("open-interest-history", syms, 7 * 3600, convert_to_usd="true")
+    out = {}
+    for cid, s in perp.items():
+        h = [p for p in oi.get(s, []) if fnum(p.get("c"))]
+        k = info[cid]["k"]
+        oi6 = None
+        if len(h) >= 2 and len(k) > 25:
+            oi6 = ((fnum(h[-1]["c"]) / k[-1][3]) / (fnum(h[0]["c"]) / k[-25][3]) - 1) * 100
+        out[cid] = {"funding": fr.get(s), "oi6": r2(oi6, 1)}
+    return out
+
+
+@module("Radar scan")
+def radar_scan(universe, cache, rstate):
+    st = CONFIG.get("radar", {})
+    info = {}
+    for c in universe:
+        try:
+            k = bn_klines(c["bsym"], "15m", 400)
+        except Exception:  # noqa: BLE001
+            continue
+        if len(k) >= 380:
+            info[c["id"]] = {**c, "k": k}
+        time.sleep(0.03)
+    if len(info) < 30:
+        raise RuntimeError(f"candles for only {len(info)} coins")
+    m = {}
+    for cid, c in info.items():
+        k = c["k"]
+        close, q, tb = [x[3] for x in k], [x[4] for x in k], [x[5] for x in k]
+        hourly = [sum(q[i:i + 4]) for i in range(len(q) - 4 - 288, len(q) - 4, 4)]  # the 72 hours before the last one
+        base = statistics.median(hourly) or 1e-9
+        v1h, level = sum(q[-4:]), max(close[-100:-4])  # last hour's volume; the 24h high before the last hour
+        m[cid] = {"price": close[-1], "volx": v1h / base, "buyers": sum(tb[-4:]) / v1h * 100 if v1h else None,
+                  "p1": (close[-1] / close[-5] - 1) * 100, "p3": (close[-1] / close[-13] - 1) * 100,
+                  "level": level, "hi24": close[-1] >= level, "vol1h": v1h,
+                  "spark": [round(x, 8) for x in close[-97::4]]}
+    mkt3 = statistics.median(x["p3"] for x in m.values())
+    calm = abs(mkt3) < st.get("calm_mkt_3h_pct", 1.5)
+    vx, lo, hi = st.get("vol_x", 3), st.get("move_min_pct", 2), st.get("move_max_pct", 5)
+    cands = [cid for cid, x in m.items() if x["hi24"] and x["volx"] >= vx and lo <= x["p1"] < hi]
+    moved = sorted([cid for cid, x in m.items() if x["p1"] >= hi and x["volx"] >= vx], key=lambda c: -m[c]["p1"])[:8]
+    fut = radar_futures(cands + moved[:4], info, cache)
+
+    def item(cid, kind):
+        c, x = info[cid], m[cid]
+        return {"id": cid, "sym": c["sym"], "name": c["name"], "rank": c["rank"], "kind": kind,  # prices stay unrounded
+                **{k: r2(v, 2) if k in ("volx", "buyers", "p1", "p3") else v for k, v in x.items()}, **fut.get(cid, {})}
+    hot, warm = [], []
+    for cid in cands:
+        f = (fut.get(cid) or {}).get("funding")
+        # breakout: calm market and funding <= 0 (the backtested alert); warm: funding positive or no futures market;
+        # busy: the whole market is moving, so it isn't a move of its own
+        kind = ("breakout" if f is not None and f <= 0 else "warm") if calm else "busy"
+        (hot if kind == "breakout" else warm).append(item(cid, kind))
+    recent = {f["id"] for f in rstate["flags"] if NOW_TS - f["ts"] < 86400}
+    new_hot = []
+    for x in hot + warm:
+        if x["id"] in recent:
+            continue
+        rstate["flags"].append({"id": x["id"], "sym": x["sym"], "name": x["name"], "kind": x["kind"], "ts": NOW_TS,
+                                "price": x["price"], "best": x["price"], "level": x["level"], "volx": x["volx"],
+                                "buyers": x["buyers"], "p1": x["p1"], "funding": x.get("funding")})
+        if x["kind"] == "breakout":
+            new_hot.append(x)
+    flags = follow_flags(rstate, {cid: x["price"] for cid, x in m.items()})
+    for f in flags:
+        f["below_level"] = bool(f.get("level")) and (f.get("last") or f["price"]) < f["level"] * 0.99
+    alerts = []
+    if new_hot:
+        alerts.append({"key": f"radar:{NOW_TS}", "level": "good",
+                       "title": "Breaking out: " + ", ".join(x["sym"] for x in new_hot[:5]),
+                       "body": "; ".join(f'{x["sym"]} new 24h high on {x["volx"]:.1f}x volume, {x["p1"]:+.1f}% in the hour, '
+                                         f'funding {x["funding"]:+.4f}%' for x in new_hot[:5])
+                               + ". Watch it hold above the old high. Right about 1 in 5 in testing: size small."})
+    send_alerts(alerts, rstate)
+    return {"generated_at": NOW.isoformat(timespec="seconds"), "scanned": len(info), "mkt3": r2(mkt3, 2), "calm": calm,
+            "breakouts": hot, "warm": warm, "moved": [item(c, "moved") for c in moved], "flags": flags,
+            "score": flag_summary(rstate["score"]), "alerts": rstate.get("recent", [])[:20],
+            "settings": {"vol_x": vx, "move_min_pct": lo, "move_max_pct": hi, "calm_mkt_3h_pct": st.get("calm_mkt_3h_pct", 1.5)}}
+
+
+def radar_main():
+    """The 15-minute scan: Binance candles for the radar universe saved by the hourly run, Coinalyze only for
+    breakout candidates. Writes docs/radar.json and data/radar_state.json, nothing else."""
+    cache = load(CACHE_PATH, {})
+    universe = (cache.get("radar_universe") or {}).get("coins") or []
+    rstate = load(RADAR_STATE_PATH, {})
+    for key, default in (("flags", []), ("score", []), ("sent", {}), ("recent", [])):
+        rstate.setdefault(key, default)
+    log(f"radar scan: {len(universe)} coins")
+    out = radar_scan(universe, cache, rstate) if universe else None
+    if out is None:
+        old = load(RADAR_PATH, {}) or {}
+        out = {**old, "error": ERRORS.get("Radar scan") or "no radar universe yet (it comes from the hourly run)",
+               "error_at": NOW.isoformat(timespec="seconds")}
+    RADAR_PATH.write_text(json.dumps(out, separators=(",", ":"), default=lambda o: None))
+    RADAR_STATE_PATH.write_text(json.dumps(rstate, separators=(",", ":"), default=lambda o: None))
+    log(f"radar done: {len(out.get('breakouts') or [])} breaking out, {len(out.get('warm') or [])} warm, errors={len(ERRORS)}")
 
 
 # ------------------------------------------------------------------ mapping
@@ -1249,8 +1491,10 @@ def main():
 
     # -------- universe prices (hourly: they feed dip strength) and scoring (every few hours)
     universe_doc = load(UNIVERSE_PATH, None)
-    rows = fetch_universe_markets()
+    rows_all = fetch_universe_markets()
+    rows = rows_all[:CONFIG.get("universe_size", 500)] if rows_all else None
     strength = dip_strength(rows, history) if rows else None
+    radar_u = (radar_universe(rows_all, cache) if rows_all else None) or (cache.get("radar_universe") or {}).get("coins") or []
     if full:
         fin_all = fetch_financials()
         if fin_all is not None:
@@ -1325,6 +1569,8 @@ def main():
     targets.update({cid: (r["sym"], False) for cid, r in sl_rows.items()})
     for cid, t in strength_targets(strength).items():  # open interest only, for the move-type check
         targets.setdefault(cid, t)
+    for c in radar_u:  # open interest on the Binance perp only, for the radar's "loading" check
+        targets.setdefault(c["id"], (c["sym"], False, False, True))
     deriv = fetch_positioning(targets, cache) or {}
     # open interest as % of market cap: how much of the price is leverage
     mcaps = {r["id"]: r["mcap"] for r in rows or [] if r.get("mcap")}
@@ -1339,6 +1585,7 @@ def main():
     if sl_rows:
         perp_map.update(map_perps([r for r in sl_rows.values() if r["id"] not in perp_map], hl))
     annotate_strength(strength, deriv, hl, perp_map, mcaps)
+    loading = radar_loading(radar_u, deriv, hl, perp_map, history) if radar_u and deriv else None
     s_hist = history.setdefault("coins", {})
     btc = cache.get("btc", {})
     fin_all = cache.get("fin", {})
@@ -1384,6 +1631,7 @@ def main():
         "transfers": [e for e in events if e["usd"] >= TH["whale_list_usd"]][:50],
         "wallet_counts": {c: len(wallet_map(c)) for c in WALLET_KEYS},
         "strength": strength,
+        "loading": loading,
         "alerts": state.get("recent", []),
         "errors": ERRORS,
         "thresholds": TH,
@@ -1399,4 +1647,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    radar_main() if "--radar" in sys.argv else main()

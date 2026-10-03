@@ -36,6 +36,19 @@
 
   "markets": ["BTC", "ETH", "SOL"],
 
+  "radar": {
+    "_note": "Radar: coins starting a move on their own in a calm market. Scanned every 15 minutes (--radar). Thresholds from a 21-day backtest; tune on the track record.",
+    "max_rank": 750,
+    "min_volume_usd": 5000000,
+    "vol_x": 3,
+    "move_min_pct": 2,
+    "move_max_pct": 5,
+    "calm_mkt_3h_pct": 1.5,
+    "loading_oi_12h_pct": 10,
+    "loading_price_flat_pct": 3,
+    "loading_buyers_pct": 55
+  },
+
   "strength": {
     "_note": "Dip strength: after a market dip, which coins fought back harder than the market. Checked hourly over the last 48h.",
     "dip_min_pct": 2,

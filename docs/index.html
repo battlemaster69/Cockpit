@@ -263,7 +263,7 @@ function spark(values, color = "var(--ink)", h = 42) {
 }
 
 /* ================= state ================= */
-let DATA = null, UNI = null, BYID = new Map();
+let DATA = null, UNI = null, RADAR = null, BYID = new Map();
 let SHORT = new Set();
 let current = (location.hash.slice(1) || "shortlist").split("/")[0];
 const ui = { q: "", sort: "total", filter: "all", shown: 40 };
@@ -493,7 +493,7 @@ function renderMacro() {
       || `<p class="empty">Add a FRED_API_KEY secret to see rates.</p>`}`;
 }
 function renderAlerts() {
-  const a = DATA.alerts || [], col = { hot: "var(--hot)", good: "var(--ok)" };
+  const a = [...(DATA.alerts || []), ...(RADAR?.alerts || [])].sort((x, y) => y.ts - x.ts), col = { hot: "var(--hot)", good: "var(--ok)" };
   return `<h2>Recent alerts</h2><p class="hint">The same alerts pushed to your phone through ntfy. Each repeats at most every ${DATA.thresholds?.alert_cooldown_hours ?? 12} hours.</p>
     <div class="panel">${a.length ? a.map(x => `<div class="alert"><b style="color:${col[x.level] || "var(--ink)"}">${esc(x.title)}</b><p>${esc(x.body)}</p><p>${agoTs(x.ts)}</p></div>`).join("")
       : `<p class="empty" style="padding:16px">No alerts yet.</p>`}</div>`;
@@ -553,7 +553,62 @@ function renderStrength() {
     ${s.held.map(x => strengthRow(x, x.net, "since dip began", `Dip only ${pct(x.drop)}`)).join("")
       || `<p class="empty" style="padding:16px">None this time.</p>`}`;
 }
-const TABS = [["shortlist", "Shortlist", renderShortlist], ["strength", "Strength", renderStrength], ["universe", "Universe", renderUniverse], ["value", "Value", renderValue],
+const fmtFunding = f => f == null ? "no futures" : `funding ${f >= 0 ? "+" : ""}${f.toFixed(4)}%`;
+function radarSub(x) {
+  return `New 24h high · volume ${x.volx.toFixed(1)}× normal · buyers ${x.buyers != null ? x.buyers.toFixed(0) + "%" : "–"} · ${fmtFunding(x.funding)}`
+    + (x.oi6 != null ? ` · futures bets ${pct(x.oi6, 0)} in 6h` : "");
+}
+function trackLine(sc, kind, label) {
+  const s = sc?.[kind];
+  return s ? `${label}: ${s.n} flagged, ${s.up} up 2%+ and ${s.down} down 2%+ a day later, average ${pct(s.avg)}.` : "";
+}
+function renderRadar() {
+  const R = RADAR, L = DATA.loading;
+  const st = R?.settings || { vol_x: 3, move_min_pct: 2, move_max_pct: 5, calm_mkt_3h_pct: 1.5 };
+  const status = { running: ["good", "running"], holding: ["meh", "holding"], faded: ["bad", "faded"] };
+  const quiet = !(R?.breakouts || []).length && !(R?.flags || []).length;  // open the guide when there's nothing to look at
+  const about = `<details class="panel" style="padding:12px 14px" ${quiet ? "open" : ""}><summary style="cursor:pointer"><b>What the Radar shows, and what to watch</b></summary>
+    <p class="hint" style="margin:8px 0">Coins starting a move <b>on their own</b> while the market is calm, the kind that appear out of nowhere (like ONE did). It is not about dips; that's the Strength tab.</p>
+    <ul class="steps">
+      <li><b>Breaking out</b> (phone alert): a new 24-hour high on ${st.vol_x}×+ its normal hourly volume, but still only ${st.move_min_pct}–${st.move_max_pct}% up in the last hour, while futures funding is zero or negative, so the move isn't crowded leveraged longs. Checked every 15 minutes across the ~${R?.scanned ?? 175} liquid coins on Binance.</li>
+      <li><b>Warm funding</b>: the same breakout, but longs are already paying funding (or there's no futures market). Weaker; no alert.</li>
+      <li><b>Already moving</b>: up ${st.move_max_pct}%+ in the hour on heavy volume. Shown for context: buying these is chasing.</li>
+      <li><b>Loading</b> (no alert): futures bets on the coin grew 10%+ in 12 hours while price stayed flat and buyers led. A slower setup that tends to play out over a day or two, not a timing signal.</li>
+    </ul>
+    <p class="hint" style="margin:8px 0"><b>What to watch after an alert</b></p>
+    <ul class="steps">
+      <li><b>Holding above the breakout level</b> (the old 24h high, shown on each row). Falling back below it is a failed breakout: the row shows "below level".</li>
+      <li><b>Volume staying high</b> the next hour, and <b>buyers above 50%</b>. A one-candle spike that fades on low volume is the classic fake.</li>
+      <li><b>Funding staying near zero.</b> If longs suddenly pay up, late leverage is piling in.</li>
+      <li><b>The status tag</b>: running (+3%), holding, or faded (−3%) since the alert.</li>
+    </ul>
+    <p class="hint" style="margin:8px 0"><b>How much to trust it:</b> in a 21-day backtest, "breaking out" was right about <b>1 time in 5</b> (a +8% move within 12 hours), 3.6 times better than a random coin, at roughly 2–3 alerts a day. So 4 in 5 won't run: keep size small and let the track record below show whether it holds up. Nothing tested gave a reliable warning hours <i>before</i> a move; this catches the start.</p></details>`;
+  if (!R || !R.generated_at) return `${about}<p class="empty">The first radar scan hasn't run yet. It runs every 15 minutes.</p>`;
+  const ageMin = (Date.now() - new Date(R.generated_at)) / 60000;
+  const head = `<p class="hint" style="margin-top:14px">Scanned ${when(R.generated_at)} · ${R.scanned} coins · market ${pct(R.mkt3)} over 3 hours${R.calm ? "" : ` · <b class="meh">market is moving, so breakouts aren't counted as moves of their own</b>`}.${ageMin > 40 ? ` <b class="meh">The scan looks paused.</b>` : ""}${R.error ? ` <b class="bad">Last scan failed: ${esc(R.error)}</b>` : ""}</p>`;
+  const row = x => strengthRow({ ...x, before: null }, x.p1, "in the last hour", radarSub(x) + ` · level ${price(x.level)}`);
+  const flagRow = f => strengthRow({ ...f, before: null, spark: null }, f.since, "since flagged",
+    `Flagged ${clock(new Date(f.ts * 1000))}${f.kind === "breakout" ? "" : ` (${f.kind})`} at ${price(f.price)} · best ${pct(f.best_pct)}${f.level ? ` · level ${price(f.level)}` : ""}`,
+    `<span class="tag ${status[f.status][0]}">${status[f.status][1]}</span>${f.below_level ? `<span class="tag bad">below level</span>` : ""}`);
+  const flags = (R.flags || []).filter(f => f.kind === "breakout"), otherFlags = (R.flags || []).filter(f => f.kind !== "breakout");
+  const loadRows = (L?.items || []).map(x => strengthRow({ ...x, before: null }, x.oi12, "futures bets, 12h",
+    `Price ${pct(x.p12)} in 12h · buyers ${x.buyers}% last hour · ${fmtFunding(x.funding)}${x.oi_mcap != null ? ` · OI ${x.oi_mcap.toFixed(0)}% of mcap (Binance)` : ""}`));
+  return `${head}${about}
+    <h2>Breaking out</h2>
+    ${(R.breakouts || []).map(row).join("") || `<p class="empty" style="padding:14px">Nothing right now. Checked every 15 minutes.</p>`}
+    ${(R.warm || []).length ? `<h2>Warm funding</h2>${R.warm.map(row).join("")}` : ""}
+    <h2>Flagged in the last 24 hours</h2>
+    ${flags.map(flagRow).join("") || `<p class="empty" style="padding:14px">No breakout alerts in the last day.</p>`}
+    ${otherFlags.length ? `<details class="panel" style="padding:10px 14px"><summary class="sub" style="cursor:pointer">${otherFlags.length} warm or busy-market breakout${otherFlags.length > 1 ? "s" : ""} (no alert)</summary><div style="margin-top:10px">${otherFlags.map(flagRow).join("")}</div></details>` : ""}
+    <p class="hint">${[trackLine(R.score, "breakout", "Track record, breaking out"), trackLine(R.score, "warm", "warm funding"), trackLine(R.score, "busy", "busy market")].filter(Boolean).join(" ") || "Track record: each flag is scored 24 hours after it fires; results build up here."}</p>
+    ${(R.moved || []).length ? `<h2>Already moving</h2><p class="hint">Up ${st.move_max_pct}%+ in the last hour on heavy volume. Late: wait for a pullback or skip.</p>${R.moved.map(x => strengthRow({ ...x, before: null }, x.p1, "in the last hour", `Volume ${x.volx.toFixed(1)}× normal · buyers ${x.buyers != null ? x.buyers.toFixed(0) + "%" : "–"} · ${fmtFunding(x.funding)}`, `<span class="tag bad">chasing</span>`)).join("")}` : ""}
+    <h2>Loading</h2>
+    <p class="hint">Futures bets up 10%+ in 12 hours (counted in coins) while price stayed within 3% and buyers led the last hour. Checked hourly${L ? `, ${L.checked} coins with futures markets` : ""}${L && !L.calm ? "; the market is moving, so new ones aren't flagged right now" : ""}. In testing these averaged +2.8% over the next day: a watchlist, not an alarm.</p>
+    ${loadRows.join("") || `<p class="empty" style="padding:14px">Nothing loading right now.</p>`}
+    ${(L?.flags || []).length ? `<p class="hint">Loading flags in the last day: ${L.flags.map(f => `${esc(f.sym)} ${pct(f.since)} (${f.status})`).join(", ")}.</p>` : ""}
+    ${L?.score?.loading ? `<p class="hint">${trackLine(L.score, "loading", "Track record, loading")}</p>` : ""}`;
+}
+const TABS = [["shortlist", "Shortlist", renderShortlist], ["strength", "Strength", renderStrength], ["radar", "Radar", renderRadar], ["universe", "Universe", renderUniverse], ["value", "Value", renderValue],
   ["flows", "Flows", renderFlows], ["macro", "Macro", renderMacro], ["alerts", "Alerts", renderAlerts]];
 
 /* ================= coin detail sheet ================= */
@@ -768,16 +823,20 @@ function absorb(data, uni) {
 // pick up a new hourly run without a manual reload: on return to the page and every 5 minutes
 async function refresh() {
   if (document.hidden || !DATA || $("#layer").innerHTML) return stamp();  // don't redraw under an open sheet
-  const data = await getJson("data.json");
+  const [data, radar] = await Promise.all([getJson("data.json"), getJson("radar.json")]);
+  let changed = false;
+  if (radar && radar.generated_at !== RADAR?.generated_at) { RADAR = radar; changed = true; }
   if (data && data.generated_at !== DATA.generated_at) {
     const uni = data.universe_at !== UNI?.generated_at ? await getJson("universe.json") : null;
-    const y = scrollY; absorb(data, uni); render(); scrollTo(0, y);
+    absorb(data, uni); changed = true;
   }
+  if (changed) { const y = scrollY; render(); scrollTo(0, y); }
   stamp();
 }
 
 (async function boot() {
-  const [data, uni, sl] = await Promise.all([getJson("data.json"), getJson("universe.json"), getJson("shortlist.json")]);
+  const [data, uni, sl, radar] = await Promise.all([getJson("data.json"), getJson("universe.json"), getJson("shortlist.json"), getJson("radar.json")]);
+  RADAR = radar;
   if (!data) {
     $("#stamp").textContent = "No data";
     $("#app").innerHTML = `<p class="empty">No data yet. Open your repo on GitHub, go to Actions, pick <b>Collect market data</b> and press <b>Run workflow</b>. This page fills in a few minutes later.</p>`;
