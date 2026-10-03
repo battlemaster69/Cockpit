@@ -247,8 +247,12 @@ def fetch_financials():
     protocols = get_json("https://api.llama.fi/protocols")
     time.sleep(1)
     chains = get_json("https://api.llama.fi/v2/chains")
+    time.sleep(1)
+    # versions ("Uniswap V3") carry no gecko_id; their parent ("parent#uniswap") does
+    parents = get_json("https://api.llama.fi/lite/protocols2").get("parentProtocols") or []
 
-    by_id, by_parent, tvl = {}, {}, {}
+    by_id, tvl = {}, {}
+    by_parent = {pp["id"]: pp["gecko_id"] for pp in parents if pp.get("id") and pp.get("gecko_id")}
     for p in protocols:
         g = p.get("gecko_id")
         if p.get("id") and g:
@@ -269,11 +273,11 @@ def fetch_financials():
         g = p.get("gecko_id")
         if g:
             return g
+        if p.get("parentProtocol") in by_parent:
+            return by_parent[p["parentProtocol"]]
         did = str(p.get("defillamaId") or p.get("id") or "")
         if did in by_id:
             return by_id[did]
-        if p.get("parentProtocol") in by_parent:
-            return by_parent[p["parentProtocol"]]
         if (p.get("protocolType") == "chain" or p.get("category") == "Chain"):
             return chain_gecko.get((p.get("name") or "").lower())
         return None
