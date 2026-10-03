@@ -45,7 +45,10 @@
     "early_window_hours": 10,
     "early_min_excess_pct": 3,
     "early_max_bounce_pct": 10,
-    "extended_pct": 15
+    "extended_pct": 15,
+    "squeeze_oi_drop_pct": 3,
+    "leverage_oi_rise_pct": 5,
+    "oi_mcap_high_pct": 20
   },
 
   "thresholds": {

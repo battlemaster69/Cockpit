@@ -672,19 +672,21 @@ def pct_val(v):
 @module("Coinalyze (positioning)")
 def fetch_positioning(targets, cache):
     """Open interest, liquidations, long/short account ratio and taker buy share, summed or averaged
-    across Binance, Bybit and OKX. targets: key -> (ticker, include taker volume)."""
+    across Binance, Bybit and OKX. targets: key -> (ticker, include taker volume, full); full=False fetches
+    open interest only (used for Strength-list coins, to keep within the free 40 calls a minute)."""
     mk = cz_markets(cache)
     sets = {}
-    for key, (sym, _) in targets.items():
+    for key, (sym, *_) in targets.items():
         rows = mk.get(sym.upper()) or mk.get("1000" + sym.upper())
         if rows:
             sets[key] = rows
     if not sets:
         raise RuntimeError("no matching perp markets")
+    full = {k for k in sets if (targets[k] + (True,))[2]}
     every = sorted({r[0] for rows in sets.values() for r in rows})
     oi = cz_history("open-interest-history", every, 8 * 86400, convert_to_usd="true")
-    liq = cz_history("liquidation-history", every, 25 * 3600, convert_to_usd="true")
-    ls = cz_history("long-short-ratio-history", sorted({r[0] for rows in sets.values() for r in rows if r[2]}), 25 * 3600)
+    liq = cz_history("liquidation-history", sorted({r[0] for k in full for r in sets[k]}), 25 * 3600, convert_to_usd="true")
+    ls = cz_history("long-short-ratio-history", sorted({r[0] for k in full for r in sets[k] if r[2]}), 25 * 3600)
     tk = sorted({r[0] for k, rows in sets.items() if targets[k][1] for r in rows if r[3]})
     ohlcv = cz_history("ohlcv-history", tk, 25 * 3600) if tk else {}
     day = NOW_TS - 86400
@@ -716,12 +718,56 @@ def fetch_positioning(targets, cache):
             "oi_chg_24h": pct_change(oi_now, series_at(series, 86400, tolerance=3 * 3600)),
             "oi_chg_7d": pct_change(oi_now, series_at(series, 7 * 86400, tolerance=6 * 3600)),
             "oi_off_7d_max": pct_change(oi_now, max(recent)) if recent else None,
-            "liq_long_24h": sum(fnum(p.get("l"), 0) or 0 for s in syms for p in liq.get(s, []) if p["t"] >= day),
-            "liq_short_24h": sum(fnum(p.get("s"), 0) or 0 for s in syms for p in liq.get(s, []) if p["t"] >= day),
+            "liq_long_24h": sum(fnum(p.get("l"), 0) or 0 for s in syms for p in liq.get(s, []) if p["t"] >= day) if key in full else None,
+            "liq_short_24h": sum(fnum(p.get("s"), 0) or 0 for s in syms for p in liq.get(s, []) if p["t"] >= day) if key in full else None,
             "long_pct": mean(longs_now), "long_pct_24h": mean(longs_then),
             "taker_buy_pct": mean(buy),
             "exchanges": sorted({r[1] for r in rows}),
         }
+    return out
+
+
+def move_type(bounce, oi_chg):
+    """What is driving a bounce, from open interest since the low. Rising on closing positions = short squeeze
+    (often fades once covering ends); on flat OI = spot buying (the healthier kind); on rising OI = new leveraged
+    positions (fuel, but what gets flushed)."""
+    st = CONFIG.get("strength", {})
+    if bounce is None or oi_chg is None or bounce < 2:
+        return None
+    if oi_chg <= -st.get("squeeze_oi_drop_pct", 3):
+        return "squeeze"
+    if oi_chg >= st.get("leverage_oi_rise_pct", 5):
+        return "leverage"
+    return "spot"
+
+
+def annotate_strength(strength, deriv, hl, perp_map, mcaps):
+    """Add move type, OI change since the low, OI as % of market cap and funding to Strength-list coins."""
+    if not strength or not strength.get("dip"):
+        return
+    low_ts = strength["dip"]["low_ts"]
+    for lst in ("early", "fought", "held"):
+        for x in strength.get(lst) or []:
+            d = deriv.get(x["id"]) or {}
+            s = d.get("oi_series") or []
+            at_low = series_at(s, NOW_TS - low_ts, tolerance=2 * 3600) if s else None
+            x["oi_chg"] = r2(pct_change(d.get("oi_usd"), at_low), 1)
+            x["move"] = move_type(x.get("bounce_now", x.get("bounce")), x["oi_chg"])  # early flags: live bounce, not the one at flag time
+            x["oi_mcap"] = r2(d["oi_usd"] / mcaps[x["id"]] * 100, 1) if d.get("oi_usd") and mcaps.get(x["id"]) else None
+            pn = perp_map.get(x["id"])
+            x["funding"] = r2(hl[pn]["funding_8h_pct"], 4) if pn and pn in hl else None
+
+
+def strength_targets(strength, limit=20):
+    """Strength-list coins worth an open-interest check: early flags (prior-pump first), top fought back, held firm."""
+    if not strength or not strength.get("dip"):
+        return {}
+    pick = [x for x in strength["early"] if x["pumped"]] + strength["fought"][:12] \
+        + [x for x in strength["early"] if not x["pumped"]] + strength["held"][:5]
+    out = {}
+    for x in pick:
+        if x["id"] not in out and len(out) < limit:
+            out[x["id"]] = (x["sym"], False, False)
     return out
 
 
@@ -785,7 +831,8 @@ def dip_strength(rows, history):
     out = {"market_path": [round((v / mkt[0] - 1) * 100, 2) for v in mkt], "dip": None, "fought": [], "held": [],
            "early": [], "new_early": [], "score": score_summary(mem["score"]),
            "pumped_before_pct": st.get("pumped_before_pct", 15), "extended_pct": st.get("extended_pct", 15),
-           "early_window_hours": st.get("early_window_hours", 10)}
+           "early_window_hours": st.get("early_window_hours", 10), "oi_mcap_high_pct": st.get("oi_mcap_high_pct", 20),
+           "leverage_oi_rise_pct": st.get("leverage_oi_rise_pct", 5)}
     if mdrop * 100 > -st.get("dip_min_pct", 2):
         return out
     m_low = min(mkt[ip:])
@@ -799,6 +846,7 @@ def dip_strength(rows, history):
     flagged = {f["id"] for f in mem["flags"] if same_dip(f)}
     early_open = hours_ago(it) <= st.get("early_window_hours", 10)
     m_moves = [mkt[k] / mkt[k - 1] - 1 for k in (n - 3, n - 2, n - 1)]
+    live_bounce = {}
     for r in coins:
         if (r.get("vol") or 0) < st.get("min_volume_usd", 20e6):
             continue
@@ -815,6 +863,7 @@ def dip_strength(rows, history):
              "before": r2((pre / r["_spark"][0] - 1) * 100, 1) if r["_spark"][0] else None,  # from ~7 days ago to the dip
              "spark": [round(v, 8) for v in s[::2]]}
         x["extended"] = x["bounce"] >= st.get("extended_pct", 15)
+        live_bounce[r["id"]] = x["bounce"]
         # EARLY: took a real hit, now out-bouncing the market by 3%+, steadily (beat it in 2 of the last 3 hours),
         # and still under 10% off its low. Replayed on the Oct 2-3 dip, prior-pump coins passing this went 7 of 9 positive.
         if early_open and r["id"] not in flagged and drop <= 0.8 * mdrop and x["vs_mkt"] >= st.get("early_min_excess_pct", 3) \
@@ -841,6 +890,7 @@ def dip_strength(rows, history):
         since = (p / f["price"] - 1) * 100
         out["early"].append({**{k: f[k] for k in ("id", "sym", "name", "ts", "bounce", "vs_mkt", "before", "pumped")},
                              "since": r2(since, 2), "best": r2((f["best"] / f["price"] - 1) * 100, 2),
+                             "bounce_now": live_bounce.get(f["id"]),
                              "status": "running" if since >= 3 else "faded" if since <= -3 else "holding",
                              "spark": [round(v, 8) for v in paths[f["id"]][::2]] if f["id"] in paths else None})
     out["early"].sort(key=lambda x: (not x["pumped"], x["ts"]))
@@ -1262,12 +1312,22 @@ def main():
     # -------- positioning across exchanges, then the leverage gauges
     targets = {m: (m, True) for m in CONFIG["markets"]}
     targets.update({cid: (r["sym"], False) for cid, r in sl_rows.items()})
+    for cid, t in strength_targets(strength).items():  # open interest only, for the move-type check
+        targets.setdefault(cid, t)
     deriv = fetch_positioning(targets, cache) or {}
+    # open interest as % of market cap: how much of the price is leverage
+    mcaps = {r["id"]: r["mcap"] for r in rows or [] if r.get("mcap")}
+    mcaps.update({cid: r["mcap"] for cid, r in sl_rows.items() if r.get("mcap")})
+    ids = {"BTC": "bitcoin", "ETH": "ethereum", "SOL": "solana"}  # majors are keyed by ticker
+    for key, d in deriv.items():
+        cap = mcaps.get(ids.get(key, key))
+        d["oi_mcap_pct"] = d["oi_usd"] / cap * 100 if cap and d.get("oi_usd") else None
     markets = build_markets(hl, history, deriv) if hl else {}
 
     perp_map = dict(cache.get("perp_map", {}))
     if sl_rows:
         perp_map.update(map_perps([r for r in sl_rows.values() if r["id"] not in perp_map], hl))
+    annotate_strength(strength, deriv, hl, perp_map, mcaps)
     s_hist = history.setdefault("coins", {})
     btc = cache.get("btc", {})
     fin_all = cache.get("fin", {})

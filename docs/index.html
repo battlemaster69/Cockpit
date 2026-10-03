@@ -498,8 +498,16 @@ function renderAlerts() {
     <div class="panel">${a.length ? a.map(x => `<div class="alert"><b style="color:${col[x.level] || "var(--ink)"}">${esc(x.title)}</b><p>${esc(x.body)}</p><p>${agoTs(x.ts)}</p></div>`).join("")
       : `<p class="empty" style="padding:16px">No alerts yet.</p>`}</div>`;
 }
+const MOVE = { spot: ["good", "spot-led"], leverage: ["hot", "leverage-led"], squeeze: ["bad", "short squeeze"] };
+function moveTags(x) {
+  const m = MOVE[x.move];
+  return (m ? `<span class="tag ${m[0]}">${m[1]}</span>` : "")
+    + (x.oi_mcap != null && x.oi_mcap >= (DATA.strength?.oi_mcap_high_pct ?? 20) ? `<span class="tag bad">OI ${x.oi_mcap.toFixed(0)}% of mcap</span>` : "");
+}
 function strengthRow(x, main, mainLabel, sub, extra = "") {
   const pumped = x.before != null && x.before >= (DATA.strength?.pumped_before_pct ?? 15);
+  extra += moveTags(x);
+  if (x.oi_chg != null) sub += ` · OI ${pct(x.oi_chg, 0)} since low${x.funding != null ? `, funding ${x.funding >= 0 ? "+" : ""}${x.funding.toFixed(3)}%` : ""}`;
   return `<button class="row srow" data-coin="${esc(x.id)}">
     <span><span class="sym">${esc(x.sym)}</span>${SHORT.has(x.id) ? `<span class="star" aria-label="Shortlisted">★</span>` : ""}${pumped ? `<span class="tag hot" title="Gain in the week before the dip">pumped ${pct(x.before, 0)}</span>` : ""}${extra}
       <span class="sub">${sub}</span></span>
@@ -531,6 +539,7 @@ function renderStrength() {
     <h2>Early strength</h2>
     <p class="hint">Caught while the bounce was still small: took a real hit, then beat the market by 3%+ in at least 2 of the last 3 hours, while still under 10% off its low, and pumped ${s.pumped_before_pct}%+ the week before. You get a phone alert the hour one appears. Big number: move since it was flagged. <b>Faded</b> means it gave back 3%+, the sold-into-strength kind to avoid. ${windowOpen ? `The window stays open for ${win} hours after the low.` : `The ${win}-hour window after the low has closed for this dip.`}</p>
     ${strong.map(early).join("") || `<p class="empty" style="padding:16px">${windowOpen ? "Nothing yet. Checked every hour." : "None this dip."}</p>`}
+    <p class="hint"><b>What's driving it</b>, from open interest (OI, open futures bets on Binance, Bybit and OKX) since the low: <span class="tag good">spot-led</span> price up with OI flat, real buying, the healthier kind. <span class="tag hot">leverage-led</span> OI up ${s.leverage_oi_rise_pct ?? 5}%+, new leveraged bets: fuel, but what gets flushed. <span class="tag bad">short squeeze</span> OI down, shorts closing; often fades once they're done. <span class="tag bad">OI x% of mcap</span> futures bets worth that share of the coin's value; above ${s.oi_mcap_high_pct ?? 20}% leverage is steering the price. Checked for up to 20 coins on this tab.</p>
     <p class="hint">${track}</p>
     ${weak.length ? `<details class="panel" style="padding:10px 14px"><summary class="sub" style="cursor:pointer">${weak.length} more early bounce${weak.length > 1 ? "s" : ""} without a prior pump (mostly noise in testing)</summary>
       <div style="margin-top:10px">${weak.map(early).join("")}</div></details>` : ""}
@@ -615,6 +624,7 @@ function detail(c) {
         <div><span>OI change 7d</span><b>${pct(d ? d.oi_chg_7d : p?.oi7)}</b></div>
         ${d ? `<div><span>Accounts long</span><b>${d.long_pct != null ? d.long_pct.toFixed(0) + "%" : "–"}${d.long_pct != null && d.long_pct_24h != null ? ` <span class="sub">${signed(d.long_pct - d.long_pct_24h)} 24h</span>` : ""}</b></div>
         <div><span>Liquidated 24h</span><b>Longs ${usd(d.liq_long_24h)}, shorts ${usd(d.liq_short_24h)}</b></div>
+        ${d.oi_mcap_pct != null ? `<div><span>Open interest / market cap</span><b class="${d.oi_mcap_pct >= (DATA.strength?.oi_mcap_high_pct ?? 20) ? "bad" : ""}">${d.oi_mcap_pct.toFixed(1)}%</b></div>` : ""}
         <div><span>Perps on</span><b>${esc(d.exchanges.join(", "))}${p ? ", Hyperliquid" : ""}</b></div>`
           : `<div><span>Perp</span><b>${esc(p.name)} on Hyperliquid</b></div>`}</div>
         ${c.oi_series?.length > 3 ? `<div class="metric" style="display:block"><span class="label">Open interest, hourly ($M${c.oi_src === "all" ? ", Binance + Bybit + OKX" : ", Hyperliquid"})</span>${spark(c.oi_series)}</div>` : ""}`
