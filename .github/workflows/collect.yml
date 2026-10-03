@@ -36,6 +36,7 @@ jobs:
           COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          COINALYZE_API_KEY: ${{ secrets.COINALYZE_API_KEY }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: python collector/collect.py ${{ inputs.full && '--full' || '' }}
 
