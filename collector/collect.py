@@ -148,6 +148,8 @@ def rpc(urls, method, params):
                          retries=1)
             if "error" in d:
                 raise RuntimeError(f"{method}: {(d['error'] or {}).get('message', d['error'])}")
+            if d.get("result") is None:  # e.g. a load-balanced node a block behind: try the next node
+                raise RuntimeError(f"{method}: empty result")
             return d["result"]
         except Exception as e:  # noqa: BLE001
             last = e
@@ -508,8 +510,8 @@ def fetch_bsc_transfers(targets, prices, seen, history):
         return []
     wallets = wallet_map("bsc")
     wtopics = ["0x" + "0" * 24 + a[2:] for a in wallets]
-    head = int(rpc(BSC_RPCS, "eth_blockNumber", []), 16)
-    t_head = int(rpc(BSC_RPCS, "eth_getBlockByNumber", [hex(head), False])["timestamp"], 16)
+    latest = rpc(BSC_RPCS, "eth_getBlockByNumber", ["latest", False])
+    head, t_head = int(latest["number"], 16), int(latest["timestamp"], 16)
     t_old = int(rpc(BSC_RPCS, "eth_getBlockByNumber", [hex(head - 20000), False])["timestamp"], 16)
     spb = max((t_head - t_old) / 20000, 0.05)  # seconds per block
     new = []

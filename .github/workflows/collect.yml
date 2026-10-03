@@ -27,6 +27,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}  # latest main, not the commit at trigger time, so a queued run sees the data the run before it just pushed
 
       # GitHub's schedule and the backup timer can both fire in the same hour: the second one skips
       - name: Skip if data is fresh
