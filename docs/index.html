@@ -189,6 +189,12 @@ tr.click { cursor: pointer; }
 .pos th, .pos td { padding: 7px 4px; }
 .pos td small { color: var(--dim); font-size: .72rem; margin-left: 2px; }
 .pos + .hint { margin-top: -2px; }
+.srow { grid-template-columns: minmax(0, 1fr) 64px auto; }
+.srow .mini svg { width: 64px; height: 26px; display: block; }
+.srow .big { font-family: var(--num); font-weight: 700; font-size: 1.25rem; line-height: 1.1; text-align: right; font-variant-numeric: tabular-nums; }
+.srow .sub { display: block; }
+.srow .tag { white-space: nowrap; }
+.tag.hot { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
 </style>
 </head>
 <body>
@@ -489,7 +495,37 @@ function renderAlerts() {
     <div class="panel">${a.length ? a.map(x => `<div class="alert"><b style="color:${col[x.level] || "var(--ink)"}">${esc(x.title)}</b><p>${esc(x.body)}</p><p>${agoTs(x.ts)}</p></div>`).join("")
       : `<p class="empty" style="padding:16px">No alerts yet.</p>`}</div>`;
 }
-const TABS = [["shortlist", "Shortlist", renderShortlist], ["universe", "Universe", renderUniverse], ["value", "Value", renderValue],
+function strengthRow(x, main, mainLabel, sub) {
+  const pumped = x.before != null && x.before >= (DATA.strength?.pumped_before_pct ?? 15);
+  return `<button class="row srow" data-coin="${esc(x.id)}">
+    <span><span class="sym">${esc(x.sym)}</span>${SHORT.has(x.id) ? `<span class="star" aria-label="Shortlisted">★</span>` : ""}${pumped ? `<span class="tag hot" title="Gain in the week before the dip">pumped ${pct(x.before, 0)}</span>` : ""}
+      <span class="sub">${sub}</span></span>
+    <span class="mini">${spark(x.spark, "var(--ink)", 26)}</span>
+    <span><span class="big ${tone(main)}">${pct(main)}</span><span class="sub" style="text-align:right">${mainLabel}</span></span>
+  </button>`;
+}
+function renderStrength() {
+  const s = DATA.strength;
+  if (!s) return `<p class="empty">Dip strength wasn't computed this run.</p>`;
+  const last = s.market_path?.at(-1);
+  const market = `<div class="panel metric"><span class="label">Market, last 48 hours (median of the top 100)</span><span class="chg ${tone(last)}">${pct(last)}</span>
+    ${spark(s.market_path)}<p>Each hour the tracker looks for a dip of 2% or more in this line, then ranks how every liquid coin in the top 500 handled it.</p></div>`;
+  const d = s.dip;
+  if (!d) return `<p class="hint" style="margin-top:14px">No market dip of 2% or more in the last 48 hours. This tab fills in after the next one.</p>${market}`;
+  const sinceLow = (Date.now() / 1000 - d.low_ts) / 3600;
+  return `<h2>After the ${Math.abs(d.drop).toFixed(1)}% dip</h2>
+    <p class="hint">The top 100 coins (median) fell ${Math.abs(d.drop).toFixed(1)}% from ${clock(new Date(d.peak_ts * 1000))} to ${clock(new Date(d.low_ts * 1000))}${d.btc_drop != null ? `, BTC ${pct(d.btc_drop)}` : ""}. Since that low the market is <b>${pct(d.bounce)}</b>.${sinceLow < 3 ? " The low is recent, so leaders are still sorting themselves out." : ""}</p>
+    ${market}
+    <h2>Fought back</h2>
+    <p class="hint">Took at least the market's hit, then bounced harder than the market. Big number: gain off its own low, with how much better that is than the market's bounce. A "pumped" tag means it rose ${DATA.strength?.pumped_before_pct ?? 15}%+ in the week before the dip and still fought back: the classic strength signal.</p>
+    ${s.fought.map(x => strengthRow(x, x.bounce, `off low, ${signed(x.vs_mkt)} vs mkt`, `Dip ${pct(x.drop)} · won back ${x.recovered != null ? x.recovered.toFixed(0) + "%" : "–"}`)).join("")
+      || `<p class="empty" style="padding:16px">Nothing has out-bounced the market yet.</p>`}
+    <h2>Held firm</h2>
+    <p class="hint">Normally volatile coins that barely dipped and are already above their pre-dip price.</p>
+    ${s.held.map(x => strengthRow(x, x.net, "since dip began", `Dip only ${pct(x.drop)}`)).join("")
+      || `<p class="empty" style="padding:16px">None this time.</p>`}`;
+}
+const TABS = [["shortlist", "Shortlist", renderShortlist], ["strength", "Strength", renderStrength], ["universe", "Universe", renderUniverse], ["value", "Value", renderValue],
   ["flows", "Flows", renderFlows], ["macro", "Macro", renderMacro], ["alerts", "Alerts", renderAlerts]];
 
 /* ================= coin detail sheet ================= */

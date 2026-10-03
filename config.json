@@ -4,7 +4,7 @@
   "universe_size": 500,
   "universe_every_hours": 4,
 
-  "exclude_symbols": ["USDT","USDC","DAI","USDE","USDS","FDUSD","TUSD","PYUSD","USD1","USDD","FRAX","GHO","RLUSD","USDX","USDY","BUIDL","USDG","USDF","SUSDE","SUSDS","USDO","USD0","EURC","XAUT","PAXG","WBTC","WETH","STETH","WSTETH","WEETH","RETH","CBBTC","CBETH","JITOSOL","MSOL","BNSOL","LBTC","SOLVBTC","TBTC","BTCB","RSETH","EZETH","METH","OSETH","SFRXETH","CLBTC","USDTB","USYC","OUSG","BSC-USD","SAVAX","STHYPE","KHYPE","JUPSOL","DSOL"],
+  "exclude_symbols": ["USDT","USDC","DAI","USDE","USDS","FDUSD","TUSD","PYUSD","USD1","USDD","FRAX","GHO","RLUSD","USDX","USDY","BUIDL","USDG","USDF","SUSDE","SUSDS","USDO","USD0","EURC","XAUT","PAXG","WBTC","WETH","STETH","WSTETH","WEETH","RETH","CBBTC","CBETH","JITOSOL","MSOL","BNSOL","LBTC","SOLVBTC","TBTC","BTCB","RSETH","EZETH","METH","OSETH","SFRXETH","CLBTC","USDTB","USYC","OUSG","BSC-USD","SAVAX","STHYPE","KHYPE","JUPSOL","DSOL","FIGR_HELOC"],
   "exclude_name_keywords": ["wrapped", "staked", "bridged", "restaked", "liquid staking", "tokenized", " usd", "usd ", "stablecoin", "tether", "dollar", "treasury"],
 
   "overrides": {
@@ -35,6 +35,14 @@
   ],
 
   "markets": ["BTC", "ETH", "SOL"],
+
+  "strength": {
+    "_note": "Dip strength: after a market dip, which coins fought back harder than the market. Checked hourly over the last 48h.",
+    "dip_min_pct": 2,
+    "min_volume_usd": 20000000,
+    "pumped_before_pct": 15,
+    "alert_after_hours": 4
+  },
 
   "thresholds": {
     "funding_hot_8h_pct": 0.03,

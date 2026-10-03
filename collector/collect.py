@@ -731,6 +731,63 @@ def deriv_summary(d):
     return {k: (r2(v, 2) if isinstance(v, float) else v) for k, v in d.items() if k != "oi_series"}
 
 
+# ------------------------------------------------------------------ dip strength
+
+@module("Dip strength")
+def dip_strength(rows):
+    """After a market dip in the last 48h, which coins took the hit and fought back harder than the market
+    ("fought back"), and which barely dipped ("held firm"). Uses CoinGecko's hourly 7-day sparklines.
+    Market = median path of the top 100 coins, each relative to 48h ago."""
+    st = CONFIG.get("strength", {})
+    coins = [r for r in rows if len(r["_spark"]) >= 100]
+    top = [r for r in coins if r.get("rank") and r["rank"] <= 100]
+    if len(top) < 50:
+        raise RuntimeError("not enough sparklines")
+    n = 49
+    paths = {r["id"]: r["_spark"][-n:] for r in coins}
+    mkt = [statistics.median(paths[r["id"]][i] / paths[r["id"]][0] for r in top) for i in range(n)]
+    worst, peak = (0.0, 0, 0), 0  # deepest peak-to-trough drop, trough after peak
+    for i, v in enumerate(mkt):
+        if v > mkt[peak]:
+            peak = i
+        if v / mkt[peak] - 1 < worst[0]:
+            worst = (v / mkt[peak] - 1, peak, i)
+    mdrop, ip, it = worst
+    hours_ago = lambda i: n - 1 - i  # noqa: E731  sparkline points are hourly, the last one is now
+    out = {"market_path": [round((v / mkt[0] - 1) * 100, 2) for v in mkt], "dip": None, "fought": [], "held": [],
+           "pumped_before_pct": st.get("pumped_before_pct", 15)}
+    if mdrop * 100 > -st.get("dip_min_pct", 2):
+        return out
+    m_low = min(mkt[ip:])
+    m_bounce = mkt[-1] / m_low - 1
+    btc = paths.get("bitcoin")
+    out["dip"] = {"drop": r2(mdrop * 100, 2), "peak_ts": NOW_TS - hours_ago(ip) * 3600, "low_ts": NOW_TS - hours_ago(it) * 3600,
+                  "bounce": r2(m_bounce * 100, 2), "now_vs_peak": r2((mkt[-1] / mkt[ip] - 1) * 100, 2),
+                  "btc_drop": r2((min(btc[ip:]) / btc[ip] - 1) * 100, 2) if btc else None}
+    for r in coins:
+        if (r.get("vol") or 0) < st.get("min_volume_usd", 20e6):
+            continue
+        s = paths[r["id"]]
+        pre, low, now = s[ip], min(s[ip:]), s[-1]
+        if not pre or not low:
+            continue
+        drop, bounce = low / pre - 1, now / low - 1
+        x = {"id": r["id"], "sym": r["sym"], "name": r["name"], "rank": r.get("rank"),
+             "drop": r2(drop * 100, 2), "bounce": r2(bounce * 100, 2),
+             "vs_mkt": r2(((1 + bounce) / (1 + m_bounce) - 1) * 100, 2),
+             "recovered": r2((now - low) / (pre - low) * 100, 0) if pre > low else None,
+             "net": r2((now / pre - 1) * 100, 2),
+             "before": r2((pre / r["_spark"][0] - 1) * 100, 1) if r["_spark"][0] else None,  # from ~7 days ago to the dip
+             "spark": [round(v, 8) for v in s[::2]]}
+        if drop <= mdrop and (x["recovered"] or 0) >= 50 and x["vs_mkt"] > 0:
+            out["fought"].append(x)  # took at least the market's hit, won back half or more, out-bounced the market
+        elif drop > mdrop / 3 and 0 <= x["net"] <= 15 and (r.get("dvol") or 0) >= 2 and (r.get("rank") or 999) <= 300:
+            out["held"].append(x)  # normally volatile, barely dipped, above its pre-dip price (but not a pump of its own)
+    out["fought"] = sorted(out["fought"], key=lambda x: -x["vs_mkt"])[:20]
+    out["held"] = sorted(out["held"], key=lambda x: -x["net"])[:10]
+    return out
+
+
 # ------------------------------------------------------------------ mapping
 
 def map_perps(coins, hl):
@@ -970,7 +1027,7 @@ def send_alerts(alerts, state):
     state["sent"] = {k: v for k, v in sent.items() if NOW_TS - v < 7 * 86400}
 
 
-def collect_alerts(markets, shortlist_out, events, mvrv, state):
+def collect_alerts(markets, shortlist_out, events, mvrv, state, strength=None):
     alerts = []
     names = {"BTC": "BTC", "ETH": "ETH", "SOL": "SOL", "ALTS": "Alts"}
     for m, d in markets.items():
@@ -1010,6 +1067,19 @@ def collect_alerts(markets, shortlist_out, events, mvrv, state):
     if mvrv and mvrv["mvrv"] < 1:
         alerts.append({"key": "mvrv<1", "level": "good", "title": "BTC MVRV below 1",
                        "body": f"MVRV {mvrv['mvrv']:.2f}. Price is under the average holder's cost, a classic bear-bottom zone."})
+    dip = (strength or {}).get("dip")
+    wait = CONFIG.get("strength", {}).get("alert_after_hours", 4) * 3600
+    # once per dip, after the leaders have had a few hours to show themselves
+    if dip and strength["fought"] and NOW_TS - dip["low_ts"] >= wait \
+            and abs(dip["peak_ts"] - state.get("dip_alerted", 0)) > 12 * 3600:
+        state["dip_alerted"] = dip["peak_ts"]
+        mine = {c["id"] for c in shortlist_out}
+        top = ", ".join(f'{x["sym"]}{"*" if x["id"] in mine else ""} {x["bounce"]:+.0f}%' for x in strength["fought"][:6])
+        alerts.append({"key": f"dip:{dip['peak_ts']}", "level": "good",
+                       "title": f"Fighting back after the {dip['drop']:.1f}% dip",
+                       "body": f"Off their lows: {top}. Market {dip['bounce']:+.1f}%."
+                               + (" * = on your shortlist." if any(x["id"] in mine for x in strength["fought"][:6]) else "")
+                               + " See the Strength tab."})
     return alerts
 
 
@@ -1049,10 +1119,11 @@ def main():
 
     hl = fetch_hyperliquid() or {}
 
-    # -------- universe (every few hours)
+    # -------- universe prices (hourly: they feed dip strength) and scoring (every few hours)
     universe_doc = load(UNIVERSE_PATH, None)
+    rows = fetch_universe_markets()
+    strength = dip_strength(rows) if rows else None
     if full:
-        rows = fetch_universe_markets()
         fin_all = fetch_financials()
         if fin_all is not None:
             cache["fin"] = fin_all
@@ -1159,7 +1230,7 @@ def main():
         if cid not in shortlist:
             del s_hist[cid]
 
-    alerts = collect_alerts(markets, shortlist_out, events, cache.get("mvrv"), state)
+    alerts = collect_alerts(markets, shortlist_out, events, cache.get("mvrv"), state, strength)
     send_alerts(alerts, state)
 
     out = {
@@ -1174,6 +1245,7 @@ def main():
         "mvrv": cache.get("mvrv"),
         "transfers": [e for e in events if e["usd"] >= TH["whale_list_usd"]][:50],
         "wallet_counts": {c: len(wallet_map(c)) for c in WALLET_KEYS},
+        "strength": strength,
         "alerts": state.get("recent", []),
         "errors": ERRORS,
         "thresholds": TH,

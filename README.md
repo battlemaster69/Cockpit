@@ -8,6 +8,7 @@ A personal crypto tracker. It runs on GitHub's servers (free, so your PC can sta
 - **Shortlist from your phone.** Tap "Add to shortlist" on any coin. Shortlisted coins refresh **every hour**, with open-interest history, exchange-wallet tracking, and alerts.
 - Ethereum contracts for wallet tracking are found automatically, so there's nothing to look up by hand.
 - **Positioning across Binance, Bybit and OKX** (via Coinalyze): long/short account ratio, liquidations, total open interest and taker buy share, for BTC, ETH, SOL and every shortlisted coin.
+- **Strength tab:** after any market dip of 2% or more (median of the top 100) in the last 48 hours, ranks which liquid coins took the hit and fought back harder than the market, and which barely dipped. Coins that pumped the week before and still fought back get a "pumped" tag. One phone alert per dip names the leaders. Settings under `strength` in `config.json`.
 - **Exchange wallets on three chains:** Ethereum and BNB Chain tokens transfer by transfer; native coins (ETH, BNB, SOL) and Solana tokens through hourly exchange balances.
 
 ## How often things update (and why it stays free)
