@@ -744,7 +744,9 @@ def dip_strength(rows):
     if len(top) < 50:
         raise RuntimeError("not enough sparklines")
     n = 49
-    paths = {r["id"]: r["_spark"][-n:] for r in coins}
+    # CoinGecko's sparkline is cached and can trail the live price by a few %, so the last point is always
+    # the live price: 48 hourly points of history plus "now"
+    paths = {r["id"]: r["_spark"][-(n - 1):] + [r["price"] or r["_spark"][-1]] for r in coins}
     mkt = [statistics.median(paths[r["id"]][i] / paths[r["id"]][0] for r in top) for i in range(n)]
     worst, peak = (0.0, 0, 0), 0  # deepest peak-to-trough drop, trough after peak
     for i, v in enumerate(mkt):
