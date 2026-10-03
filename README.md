@@ -55,6 +55,13 @@ If the hidden `.github` or `docs/.nojekyll` files don't upload, create them by h
 ### D. First full run
 Open **Actions**, then **Collect market data**, then **Run workflow**. Tick **Force a full universe refresh** and run it. It takes about 3–5 minutes. After that it runs every hour by itself, and rebuilds the universe every 4 hours.
 
+### D2. Hourly backup timer (recommended)
+GitHub's built-in schedule is best-effort and can skip hours, especially on new repos. A free timer on cron-job.org starts the run every hour as a backup; if GitHub's own run already happened, the extra one skips itself.
+1. On GitHub, create a **fine-grained token** for this repo only, with **Actions: Read and write** and nothing else.
+2. On cron-job.org, create a job: URL `https://api.github.com/repos/YOUR-USERNAME/REPO-NAME/actions/workflows/collect.yml/dispatches`, every hour at minute 12, method **POST**.
+3. Headers: `Accept: application/vnd.github+json`, `Authorization: Bearer YOUR-TOKEN`, `X-GitHub-Api-Version: 2022-11-28`, `Content-Type: application/json`.
+4. Body: `{"ref":"main","inputs":{"auto":"true"}}`. A test run should answer **204**, and a run appears under Actions.
+
 ### E. Phone
 - Open `https://YOUR-USERNAME.github.io/REPO-NAME/` and add it to your home screen.
 - In the ntfy app, subscribe to your topic.
