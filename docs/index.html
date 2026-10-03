@@ -184,6 +184,11 @@ tr.click { cursor: pointer; }
 .steps { padding-left: 20px; margin: 0 0 14px; color: var(--dim); font-size: .88rem; }
 .steps li { margin-bottom: 4px; }
 .spark-wrap svg { width: 100%; height: 56px; display: block; }
+.pos { margin-top: 12px; padding: 6px 10px; }
+.pos table { font-size: .82rem; }
+.pos th, .pos td { padding: 7px 4px; }
+.pos td small { color: var(--dim); font-size: .72rem; margin-left: 2px; }
+.pos + .hint { margin-top: -2px; }
 </style>
 </head>
 <body>
@@ -198,7 +203,7 @@ tr.click { cursor: pointer; }
     </span>
   </header>
   <div id="app"></div>
-  <footer>Free data from Hyperliquid, CoinGecko, DefiLlama, FRED, CoinMetrics and Etherscan. Not financial advice.</footer>
+  <footer>Free data from Hyperliquid, Coinalyze, CoinGecko, DefiLlama, FRED, CoinMetrics, Etherscan and public BNB Chain and Solana nodes. Not financial advice.</footer>
 </div>
 <div id="layer"></div>
 
@@ -208,9 +213,9 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 const usd = v => {
   if (v == null || !isFinite(v)) return "–";
   const a = Math.abs(v);
-  if (a >= 1e12) return "$" + (v / 1e12).toFixed(2) + "T";
-  if (a >= 1e9) return "$" + (v / 1e9).toFixed(2) + "B";
-  if (a >= 1e6) return "$" + (v / 1e6).toFixed(1) + "M";
+  if (a >= 0.9995e12) return "$" + (v / 1e12).toFixed(2) + "T";
+  if (a >= 0.9995e9) return "$" + (v / 1e9).toFixed(2) + "B";
+  if (a >= 0.9995e6) return "$" + (v / 1e6).toFixed(1) + "M";
   if (a >= 1e3) return "$" + (v / 1e3).toFixed(0) + "K";
   return "$" + v.toFixed(0);
 };
@@ -349,6 +354,21 @@ function verdict(mk) {
   if (Object.values(mk).some(m => m.warming_up)) parts.push(`<span style="color:var(--dim)">Readings sharpen after 7 days of history.</span>`);
   return parts.join(" ");
 }
+const signed = (v, unit = "") => v == null || !isFinite(v) ? "" : (v > 0 ? "+" : "") + v.toFixed(0) + unit;
+function positioning(mk) {
+  const rows = [["BTC", "BTC"], ["ETH", "ETH"], ["SOL", "SOL"]].filter(([k]) => mk[k]?.deriv);
+  if (!rows.length) return "";
+  const short = v => usd(v).replace(/\.\d([MB])$/, "$1");
+  return `<div class="panel pos scroll"><table>
+      <thead><tr><th></th><th>Longs</th><th>Liq. L / S</th><th>OI</th><th>Buys</th></tr></thead>
+      <tbody>${rows.map(([k, n]) => { const d = mk[k].deriv, ll = d.liq_long_24h || 0, ls = d.liq_short_24h || 0;
+        return `<tr><td><b>${n}</b></td>
+          <td>${d.long_pct != null ? d.long_pct.toFixed(0) + "%" : "–"}${d.long_pct != null && d.long_pct_24h != null ? `<small>${signed(d.long_pct - d.long_pct_24h)}</small>` : ""}</td>
+          <td><span class="${ll > ls ? "bad" : ""}">${short(ll)}</span> / <span class="${ls > ll ? "good" : ""}">${short(ls)}</span></td>
+          <td>${short(d.oi_usd)}<small>${signed(d.oi_chg_24h, "%")}</small></td>
+          <td>${d.taker_buy_pct != null ? d.taker_buy_pct.toFixed(0) + "%" : "–"}</td></tr>`; }).join("")}</tbody></table></div>
+    <p class="hint">Binance, Bybit and OKX combined, last 24h. <b>Longs</b>: share of trader accounts betting up, with its 24h change; a lopsided crowd is a contrarian warning. <b>Liq.</b>: longs / shorts force-closed; a big wave of long liquidations often marks a local low. <b>OI</b>: open interest with its 24h change. <b>Buys</b>: share of volume from aggressive buyers; under 50% means sellers are pushing.</p>`;
+}
 
 /* ================= coin rows ================= */
 const lightWord = { green: "Entry looks clean", amber: "Three checks pass", red: "Wait", grey: "Not enough data" };
@@ -419,6 +439,7 @@ function renderValue() {
 }
 function renderFlows() {
   const s = DATA.stablecoins, dom = DATA.dominance, tx = DATA.transfers || [];
+  const bal = (DATA.shortlist || []).filter(c => c.flows?.method === "balance" && c.track);
   return `<h2>Money supply</h2>
     <div class="panel metric"><span class="label">Stablecoins in circulation</span><span class="chg ${tone(s?.chg_30d)}">${pct(s?.chg_30d)} 30d</span>
       <span class="val">${usd(s?.total)}</span><span class="chg ${tone(s?.chg_7d)}">${pct(s?.chg_7d)} 7d</span>${spark(s?.series)}
@@ -426,11 +447,19 @@ function renderFlows() {
     <div class="panel metric"><span class="label">Bitcoin dominance</span><span class="chg">ETH ${dom?.eth_dom != null ? dom.eth_dom.toFixed(1) + "%" : "–"}</span>
       <span class="val">${dom?.btc_dom != null ? dom.btc_dom.toFixed(1) + "%" : "–"}</span><span></span>${spark(dom?.series)}
       <p>Falling dominance means money rotating into alts. Above ~58% is still Bitcoin season.</p></div>
+    ${bal.length ? `<h2>Exchange balances</h2>
+    <p class="hint">What known exchange wallets hold of your shortlisted native coins and Solana tokens, checked hourly. Rising means coins moving onto exchanges (possible selling); falling means withdrawals.</p>
+    <div class="panel scroll"><table>
+      <thead><tr><th>Coin</th><th>On exchanges</th><th>24h</th><th>7d</th></tr></thead>
+      <tbody>${bal.map(c => { const f = c.flows, n24 = f.in_24h - f.out_24h, n7 = f.in_7d - f.out_7d, warm = Date.now() / 1000 - f.since < 86400;
+        return `<tr class="click" data-coin="${esc(c.id)}" tabindex="0"><td><b>${esc(c.sym)}</b> <span class="sub">${CHAIN[c.track.chain]}</span></td><td>${usd(f.balance_usd)}</td>
+          <td class="${n24 > 0 ? "bad" : n24 < 0 ? "good" : ""}">${netChange(n24)}</td><td class="${warm ? "" : n7 > 0 ? "bad" : n7 < 0 ? "good" : ""}">${warm ? "building" : netChange(n7)}</td></tr>`; }).join("")}</tbody></table></div>` : ""}
     <h2>Exchange transfers</h2>
-    <p class="hint">Large moves of your shortlisted Ethereum tokens into or out of known Binance, Coinbase, OKX and Kraken wallets. Into an exchange can mean selling; out usually means holding.</p>
-    <div class="panel">${tx.length ? tx.map(t => `<div class="tx"><span><b>${esc(t.sym)}</b> ${t.dir === "in" ? "into" : "out of"} ${esc(t.exchange)}</span>
+    <p class="hint">Large moves of your shortlisted Ethereum and BNB Chain tokens into or out of known exchange wallets (Binance, Coinbase, OKX, Bybit, Kraken and others). Into an exchange can mean selling; out usually means holding.</p>
+    <div class="panel">${tx.length ? tx.map(t => { const x = t.chain === "bsc" ? ["https://bscscan.com/tx/", "BscScan"] : ["https://etherscan.io/tx/", "Etherscan"];
+      return `<div class="tx"><span><b>${esc(t.sym)}</b> ${t.dir === "in" ? "into" : "out of"} ${esc(t.exchange)}</span>
       <b class="${t.dir === "in" ? "bad" : "good"}">${usd(t.usd)}</b><span class="when">${agoTs(t.ts)}</span>
-      <a class="when" href="https://etherscan.io/tx/${esc(t.hash)}" target="_blank" rel="noopener">View on Etherscan</a></div>`).join("")
+      <a class="when" href="${x[0]}${esc(t.hash)}" target="_blank" rel="noopener">View on ${x[1]}</a></div>`; }).join("")
       : `<p class="empty" style="padding:16px">No large transfers in the last week.</p>`}</div>`;
 }
 function renderMacro() {
@@ -459,6 +488,19 @@ const TABS = [["shortlist", "Shortlist", renderShortlist], ["universe", "Univers
 
 /* ================= coin detail sheet ================= */
 const CATS = ["Fundamentals", "Not priced in", "Value capture", "Catalyst", "Safety"];
+const CHAIN = { eth: "Ethereum", bsc: "BNB Chain", sol: "Solana" };
+const netChange = v => v == null ? "–" : Math.abs(v) < 1 ? "No change" : (v > 0 ? "Up " : "Down ") + usd(Math.abs(v));
+function balanceStats(fl, tr) {
+  const warm = Date.now() / 1000 - fl.since < 86400;
+  const top = Object.entries(fl.by_exchange || {})[0];
+  const n7 = fl.in_7d - fl.out_7d, n24 = fl.in_24h - fl.out_24h;
+  return `<div class="stats">
+      <div><span>Held on exchanges</span><b>${usd(fl.balance_usd)}</b></div>
+      <div><span>Biggest holder</span><b>${top ? `${esc(top[0])} ${usd(top[1])}` : "–"}</b></div>
+      <div><span>Change 24h</span><b class="${n24 > 0 ? "bad" : n24 < 0 ? "good" : ""}">${netChange(n24)}</b></div>
+      <div><span>Change 7d</span><b class="${n7 > 0 ? "bad" : n7 < 0 ? "good" : ""}">${warm ? "Building history" : netChange(n7)}</b></div></div>
+    <p class="hint">Hourly balances of ${DATA.wallet_counts?.[tr.chain] ?? "known"} exchange wallets on ${CHAIN[tr.chain]}, tracked since ${agoTs(fl.since)}. Balances rising means coins moving onto exchanges, often ahead of selling.</p>`;
+}
 let lastFocus = null;
 function detail(c) {
   const inShort = SHORT.has(c.id);
@@ -472,7 +514,7 @@ function detail(c) {
   }).join("");
   const checks = (c.checks || []).map((it, i) => `<li><span class="mark ${it[0] === true ? "y" : it[0] === false ? "n" : "u"}">${it[0] === true ? "✓" : it[0] === false ? "✕" : "?"}</span>
     <span>${["Funding not overheated", "Leverage recently flushed", "Coins leaving exchanges", "No big unlock in 2 weeks", "Not chasing a pump"][i]}<span class="why">${esc(it[1])}</span></span></li>`).join("");
-  const f = c.fin, p = c.perp, fl = c.flows;
+  const f = c.fin, p = c.perp, fl = c.flows, d = c.deriv, tr = c.track;
   const net7 = fl ? fl.in_7d - fl.out_7d : null;
   return `<div class="sheet-head">
       <span class="sheet-title" id="sheet-title">${esc(c.sym)}<small>${esc(c.name)}${c.rank ? ", #" + c.rank : ""}</small></span>
@@ -505,13 +547,16 @@ function detail(c) {
         : `<p><span class="badge">No on-chain financials found</span></p><p class="hint">DefiLlama doesn't track revenue for this token. Its score leans on price, trend and safety only.</p>`}
 
       <h3>Leverage</h3>
-      ${p ? `<div class="stats">
-        <div><span>Funding (8h)</span><b class="${p.funding >= (DATA.thresholds?.funding_hot_8h_pct ?? .03) ? "bad" : p.funding < 0 ? "good" : ""}">${p.funding >= 0 ? "+" : ""}${p.funding.toFixed(4)}%</b></div>
-        <div><span>Open interest</span><b>${usd(p.oi)}</b></div>
-        <div><span>OI change 7d</span><b>${pct(p.oi7)}</b></div>
-        <div><span>Perp</span><b>${esc(p.name)} on Hyperliquid</b></div></div>
-        ${c.oi_series?.length > 3 ? `<div class="metric" style="display:block"><span class="label">Open interest, hourly ($M)</span>${spark(c.oi_series)}</div>` : ""}`
-        : `<p><span class="badge">No perp market on Hyperliquid</span></p>`}
+      ${p || d ? `<div class="stats">
+        ${p ? `<div><span>Funding (8h, Hyperliquid)</span><b class="${p.funding >= (DATA.thresholds?.funding_hot_8h_pct ?? .03) ? "bad" : p.funding < 0 ? "good" : ""}">${p.funding >= 0 ? "+" : ""}${p.funding.toFixed(4)}%</b></div>` : ""}
+        <div><span>Open interest${d ? ", all exchanges" : ""}</span><b>${usd(d?.oi_usd ?? p?.oi)}</b></div>
+        <div><span>OI change 7d</span><b>${pct(d ? d.oi_chg_7d : p?.oi7)}</b></div>
+        ${d ? `<div><span>Accounts long</span><b>${d.long_pct != null ? d.long_pct.toFixed(0) + "%" : "–"}${d.long_pct != null && d.long_pct_24h != null ? ` <span class="sub">${signed(d.long_pct - d.long_pct_24h)} 24h</span>` : ""}</b></div>
+        <div><span>Liquidated 24h</span><b>Longs ${usd(d.liq_long_24h)}, shorts ${usd(d.liq_short_24h)}</b></div>
+        <div><span>Perps on</span><b>${esc(d.exchanges.join(", "))}${p ? ", Hyperliquid" : ""}</b></div>`
+          : `<div><span>Perp</span><b>${esc(p.name)} on Hyperliquid</b></div>`}</div>
+        ${c.oi_series?.length > 3 ? `<div class="metric" style="display:block"><span class="label">Open interest, hourly ($M${c.oi_src === "all" ? ", Binance + Bybit + OKX" : ", Hyperliquid"})</span>${spark(c.oi_series)}</div>` : ""}`
+        : `<p><span class="badge">No perp market found</span></p>`}
 
       <h3>Market</h3>
       <div class="stats">
@@ -521,11 +566,13 @@ function detail(c) {
         <div><span>24h volume</span><b>${usd(c.vol)}</b></div></div>
 
       <h3>Exchange flows</h3>
-      ${inShort ? (c.eth_contract ? `<div class="stats">
+      ${!inShort ? `<p class="hint">Shortlist this coin to track its exchange-wallet flows.</p>`
+        : !tr ? `<p class="hint">Exchange wallets are tracked on Ethereum, BNB Chain and Solana, and this coin isn't on any of them (or its contract wasn't found).</p>`
+        : fl?.method === "balance" ? balanceStats(fl, tr)
+        : `<div class="stats">
         <div><span>Net flow 7d</span><b class="${net7 == null ? "" : net7 > 0 ? "bad" : "good"}">${net7 == null || (!fl.in_7d && !fl.out_7d) ? "No large moves" : (net7 > 0 ? "In " : "Out ") + usd(Math.abs(net7))}</b></div>
-        <div><span>Last 24h</span><b>${fl ? `In ${usd(fl.in_24h)}, out ${usd(fl.out_24h)}` : "–"}</b></div></div>`
-          : `<p class="hint">Not an Ethereum token (or the contract wasn't found), so exchange wallets can't be tracked.</p>`)
-        : `<p class="hint">Shortlist this coin to track its exchange-wallet flows.</p>`}
+        <div><span>Last 24h</span><b>${fl ? `In ${usd(fl.in_24h)}, out ${usd(fl.out_24h)}` : "–"}</b></div></div>
+        <p class="hint">Transfers into and out of ${DATA.wallet_counts?.[tr.chain] ?? "known"} exchange wallets on ${CHAIN[tr.chain]}.</p>`}
 
       <div class="links" style="margin-top:18px">
         <a href="https://www.coingecko.com/en/coins/${esc(c.id)}" target="_blank" rel="noopener">CoinGecko</a>
@@ -591,7 +638,7 @@ function render() {
   const order = [["BTC", "BTC"], ["ETH", "ETH"], ["SOL", "SOL"], ["ALTS", "Alts"]].filter(([k]) => mk[k]);
   const errs = Object.entries(DATA.errors || {});
   $("#app").innerHTML = `
-    ${order.length ? `<div class="gauges">${order.map(([k, n]) => gauge(n, mk[k])).join("")}</div><p class="verdict">${verdict(mk)}</p>` : `<p class="empty">Leverage data unavailable this run.</p>`}
+    ${order.length ? `<div class="gauges">${order.map(([k, n]) => gauge(n, mk[k])).join("")}</div><p class="verdict">${verdict(mk)}</p>${positioning(mk)}` : `<p class="empty">Leverage data unavailable this run.</p>`}
     ${errs.length ? `<p class="errors">${errs.length} source${errs.length > 1 ? "s" : ""} didn't update: ${errs.map(([k, v]) => `<b>${esc(k)}</b> (${esc(v)})`).join("; ")}</p>` : ""}
     <nav><div class="tabs" role="tablist">${TABS.map(([id, l]) => `<button role="tab" data-tab="${id}" aria-selected="${id === current}">${l}</button>`).join("")}</div></nav>
     ${TABS.map(([id, , fn]) => `<section role="tabpanel" id="tab-${id}" ${id === current ? "" : "hidden"}>${fn()}</section>`).join("")}`;

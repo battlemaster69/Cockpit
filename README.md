@@ -7,13 +7,16 @@ A personal crypto tracker. It runs on GitHub's servers (free, so your PC can sta
 - **Tap any coin** to see its report card, entry checklist, financials, leverage (funding and open interest), market data, and exchange flows.
 - **Shortlist from your phone.** Tap "Add to shortlist" on any coin. Shortlisted coins refresh **every hour**, with open-interest history, exchange-wallet tracking, and alerts.
 - Ethereum contracts for wallet tracking are found automatically, so there's nothing to look up by hand.
+- **Positioning across Binance, Bybit and OKX** (via Coinalyze): long/short account ratio, liquidations, total open interest and taker buy share, for BTC, ETH, SOL and every shortlisted coin.
+- **Exchange wallets on three chains:** Ethereum and BNB Chain tokens transfer by transfer; native coins (ETH, BNB, SOL) and Solana tokens through hourly exchange balances.
 
 ## How often things update (and why it stays free)
 
 | What | How often | API cost per day |
 |---|---|---|
 | Leverage gauges, shortlist prices, OI, funding | Every hour | Hyperliquid 24 calls, CoinGecko 24 calls |
-| Shortlist exchange-wallet flows | Every hour | Etherscan about 14 calls per Ethereum token per run (100,000 a day allowed) |
+| Positioning (L/S ratio, liquidations, OI, taker flow) | Every hour | Coinalyze about 100–150 calls per run, paced under its 40 a minute limit |
+| Shortlist exchange-wallet flows | Every hour | Etherscan about 14 calls per Ethereum token per run (100,000 a day allowed); free public BNB Chain and Solana nodes |
 | Universe of 500 coins, financials, macro | Every 4 hours | CoinGecko about 20 calls, DefiLlama about 24, FRED 18, CoinMetrics 6 |
 
 CoinGecko works out to roughly 1,500 calls a month against a free limit of 10,000. GitHub Actions is free and unlimited for public repos.
@@ -38,8 +41,8 @@ Each coin gets five categories out of 10, for a total out of 50.
 If you already set up v1, only steps **B**, **D** and **F** are new.
 
 ### A. Keys (same as v1)
-CoinGecko Demo key, Etherscan key, FRED key, and an ntfy topic name. Add them as repo secrets:
-`COINGECKO_API_KEY`, `ETHERSCAN_API_KEY`, `FRED_API_KEY`, `NTFY_TOPIC`.
+CoinGecko Demo key, Etherscan key, FRED key, a free Coinalyze key (coinalyze.net, Account, API key), and an ntfy topic name. Add them as repo secrets:
+`COINGECKO_API_KEY`, `ETHERSCAN_API_KEY`, `FRED_API_KEY`, `COINALYZE_API_KEY`, `NTFY_TOPIC`.
 
 ### B. Replace the files
 Upload everything in this folder to the **top level** of your repo, replacing the old files. The repo's main page should show `docs`, `collector`, `data`, `.github` and `config.json` directly.
@@ -73,15 +76,15 @@ The token is stored only in your phone's browser. Because it can only edit files
 - `exclude_symbols` / `exclude_name_keywords`: coins to keep out of the universe.
 - `overrides`: your manual scores per coin (keyed by CoinGecko ID).
 - `unlocks`: upcoming token unlocks. The checklist fails a coin within 14 days of one.
-- `thresholds`: funding levels, flush size, whale alert size, alert cooldown.
-- `exchange_wallets`: exchange hot wallets to watch. Verify on etherscan.io and add more.
+- `thresholds`: funding levels, flush size, whale alert size, liquidation alert size (`liq_alert_pct_of_oi`, % of open interest liquidated in 24h), alert cooldown.
+- `exchange_wallets`, `exchange_wallets_bsc`, `exchange_wallets_sol`: exchange wallets to watch on Ethereum, BNB Chain and Solana. All come from Dune's open exchange-address labels (github.com/duneanalytics/spellbook) and were checked for activity on their chain.
 
 ## Good to know
-- **Leverage data is from Hyperliquid only.** About 150–200 coins have perps there; the rest show "No perp market".
-- **Exchange flows work only for Ethereum tokens** on your shortlist.
-- **The "Leverage recently flushed" check needs a few days of history.** Shortlisted coins build hourly history; others get one snapshot a day.
+- **Funding comes from Hyperliquid; positioning from Binance, Bybit and OKX.** Shortlisted coins also get open interest across those three, so the "Leverage recently flushed" check works from day one. Universe coins use Hyperliquid only, and one snapshot a day.
+- **Each coin is watched on its home chain:** JUP and SOL on Solana, BNB and CAKE on BNB Chain, most other tokens on Ethereum. Bridged copies on other chains are ignored because they're mostly exchanges moving their own stock.
+- **Exchange balances need a day of history** before the 7-day change counts toward the entry checklist. No active OKX wallet is labelled on Solana yet, so OKX is missing there.
 - **Everything is public** (it's a public repo). It only holds market data, so never add holdings or position sizes.
 - **If a source fails,** the dashboard names it and the rest keeps working.
-- **Not tested against the live APIs from my side.** If the first run shows an error, the Actions log names the exact module.
+- **If a run shows an error,** the Actions log names the exact module.
 
 Not financial advice.

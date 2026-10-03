@@ -2,8 +2,9 @@
 Crypto Cockpit v2 collector.
 
 Runs every hour on GitHub Actions.
-  * Every run (hourly): leverage gauges, shortlist prices, shortlist OI history,
-    shortlist exchange-wallet flows, alerts.
+  * Every run (hourly): leverage gauges, positioning across Binance/Bybit/OKX (Coinalyze),
+    shortlist prices, shortlist OI history, shortlist exchange-wallet flows on
+    Ethereum, BNB Chain and Solana, alerts.
   * Every `universe_every_hours` (default 4h): the full universe (top 500 coins),
     financials from DefiLlama, automatic scores, macro, stablecoins, MVRV.
 
@@ -14,6 +15,7 @@ Reads:
   docs/shortlist.json - CoinGecko ids you shortlisted from the dashboard
 """
 
+import hashlib
 import json
 import math
 import os
@@ -45,6 +47,11 @@ SESSION.headers["User-Agent"] = "crypto-cockpit/2.0"
 ERRORS = {}
 CG_KEY = os.getenv("COINGECKO_API_KEY", "").strip()
 CG_HEADERS = {"x-cg-demo-api-key": CG_KEY} if CG_KEY else None
+CZ_KEY = os.getenv("COINALYZE_API_KEY", "").strip()
+BSC_RPCS = ["https://bsc-rpc.publicnode.com", "https://bsc.drpc.org"]
+SOL_RPCS = ["https://api.mainnet-beta.solana.com", "https://solana-rpc.publicnode.com"]
+TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+WALLET_KEYS = {"eth": "exchange_wallets", "bsc": "exchange_wallets_bsc", "sol": "exchange_wallets_sol"}
 
 
 # ------------------------------------------------------------------ helpers
@@ -130,6 +137,51 @@ def trim(series, days):
 
 def r2(v, d=4):
     return None if v is None else round(v, d)
+
+
+def rpc(urls, method, params):
+    """JSON-RPC call to a free public node, falling back to the next node on failure."""
+    last = None
+    for url in urls:
+        try:
+            d = get_json(url, method="POST", body={"jsonrpc": "2.0", "id": 1, "method": method, "params": params},
+                         retries=1)
+            if "error" in d:
+                raise RuntimeError(f"{method}: {(d['error'] or {}).get('message', d['error'])}")
+            return d["result"]
+        except Exception as e:  # noqa: BLE001
+            last = e
+    raise RuntimeError(str(last))
+
+
+_CZ_CALLS = []
+
+
+def cz_get(path, symbols=None, **params):
+    """Coinalyze GET. Free plan: 40 calls a minute, and every symbol in a request counts as one call."""
+    if not CZ_KEY:
+        raise RuntimeError("COINALYZE_API_KEY secret not set")
+    cost = len(symbols) if symbols else 1
+    while True:
+        now = time.time()
+        _CZ_CALLS[:] = [t for t in _CZ_CALLS if now - t < 61]
+        if len(_CZ_CALLS) + cost <= 38:
+            break
+        time.sleep(max(0.5, 61 - (now - _CZ_CALLS[0])))
+    _CZ_CALLS.extend([time.time()] * cost)
+    if symbols:
+        params["symbols"] = ",".join(symbols)
+    return get_json(f"https://api.coinalyze.net/v1/{path}", params=params, headers={"api_key": CZ_KEY})
+
+
+def wallet_map(chain):
+    """address -> exchange name for one chain (EVM addresses lower-cased, Solana kept as is)."""
+    out = {}
+    for a, n in CONFIG.get(WALLET_KEYS[chain], {}).items():
+        if a.startswith("_"):
+            continue
+        out[a.lower() if a.startswith("0x") else a] = n
+    return out
 
 
 # ------------------------------------------------------------------ sources
@@ -354,51 +406,77 @@ def fetch_mvrv():
             "series": [round(r[1], 3) for r in rows[-365:]][::3]}
 
 
+NATIVE = {"ethereum": "eth", "binancecoin": "bsc", "solana": "sol"}
+PLATFORMS = {"ethereum": "eth", "binance-smart-chain": "bsc", "solana": "sol"}
+
+
 @module("CoinGecko (contract lookup)")
 def refresh_contracts(ids, cache):
-    """Find each shortlisted coin's Ethereum contract (cached for 7 days, max 8 lookups per run)."""
+    """Pick the chain to watch for each shortlisted coin: its home chain if we track it (Ethereum,
+    BNB Chain, Solana), else any of those it is issued on. Cached 7 days, max 12 lookups per run."""
     contracts = cache.setdefault("contracts", {})
-    todo = [i for i in ids if NOW_TS - contracts.get(i, {}).get("ts", 0) > 7 * 86400][:8]
+    todo = [i for i in ids if contracts.get(i, {}).get("v") != 2
+            or NOW_TS - contracts[i].get("ts", 0) > 7 * 86400][:12]
     for cid in todo:
+        if cid in NATIVE:
+            contracts[cid] = {"v": 2, "ts": NOW_TS, "track": {"chain": NATIVE[cid], "kind": "native"}}
+            continue
         try:
             d = get_json(f"https://api.coingecko.com/api/v3/coins/{cid}", params={
                 "localization": "false", "tickers": "false", "market_data": "false",
                 "community_data": "false", "developer_data": "false", "sparkline": "false"},
                 headers=CG_HEADERS, retries=1)
-            addr = (d.get("platforms") or {}).get("ethereum") or ""
-            dec = ((d.get("detail_platforms") or {}).get("ethereum") or {}).get("decimal_place")
-            contracts[cid] = {"eth": addr.lower(), "dec": dec, "ts": NOW_TS}
+            plats = {k: (v or "").strip() for k, v in (d.get("platforms") or {}).items()}
+            plat = next((p for p in [d.get("asset_platform_id"), *PLATFORMS] if p in PLATFORMS and plats.get(p)), None)
+            track = None
+            if plat:
+                addr = plats[plat] if plat == "solana" else plats[plat].lower()  # Solana mints are case-sensitive
+                dec = ((d.get("detail_platforms") or {}).get(plat) or {}).get("decimal_place")
+                track = {"chain": PLATFORMS[plat], "kind": "token", "addr": addr, "dec": dec}
+            contracts[cid] = {"v": 2, "ts": NOW_TS, "track": track}
         except Exception:  # noqa: BLE001
-            contracts[cid] = {"eth": "", "ts": NOW_TS - 6 * 86400}  # retry in a day
+            contracts[cid] = {"v": 2, "ts": NOW_TS - 6 * 86400, "track": None}  # retry in a day
         time.sleep(2.5)
     return contracts
 
 
+def transfer_event(eid, ts, cid, sym, frm, to, wallets, amount, price, tx, chain):
+    direction = "in" if to in wallets else "out"
+    return {"id": eid, "ts": ts, "cid": cid, "sym": sym, "dir": direction, "chain": chain,
+            "exchange": wallets[to] if direction == "in" else wallets[frm],
+            "amount": amount, "usd": amount * price, "hash": tx}
+
+
 @module("Etherscan (exchange flows)")
-def fetch_exchange_transfers(shortlist, prices, contracts, history):
+def fetch_eth_transfers(targets, prices, seen, history):
+    """Token transfers into and out of known Ethereum exchange wallets (last 100 per wallet and token)."""
+    if not targets:
+        return []
     key = os.getenv("ETHERSCAN_API_KEY", "").strip()
     if not key:
         raise RuntimeError("ETHERSCAN_API_KEY secret not set")
-    wallets = {a.lower(): n for a, n in CONFIG["exchange_wallets"].items() if a.startswith("0x")}
-    events = list(history.get("transfers", []))
-    seen = {e["id"] for e in events}
+    wallets = wallet_map("eth")
     cutoff = NOW_TS - 8 * 86400
-    for cid in shortlist:
-        contract = (contracts.get(cid) or {}).get("eth")
+    new, calls, fails = [], 0, []
+    for cid, track in targets.items():
         price = (prices.get(cid) or {}).get("price")
         sym = (prices.get(cid) or {}).get("sym") or cid.upper()
-        if not contract or not price:
+        if not price:
             continue
         for wallet in wallets:
+            calls += 1
             try:
                 d = get_json("https://api.etherscan.io/v2/api", params={
-                    "chainid": 1, "module": "account", "action": "tokentx", "contractaddress": contract,
+                    "chainid": 1, "module": "account", "action": "tokentx", "contractaddress": track["addr"],
                     "address": wallet, "page": 1, "offset": 100, "sort": "desc", "apikey": key}, retries=1)
-            except Exception:  # noqa: BLE001
+            except Exception as e:  # noqa: BLE001
+                fails.append(str(e))
                 continue
             time.sleep(0.22)  # free tier: 5 calls/sec
             result = d.get("result")
             if not isinstance(result, list):
+                if d.get("message") != "No transactions found":
+                    fails.append(str(result)[:120])
                 continue
             for t in result:
                 ts = int(t["timeStamp"])
@@ -412,13 +490,243 @@ def fetch_exchange_transfers(shortlist, prices, contracts, history):
                     continue
                 seen.add(eid)
                 amount = int(t["value"]) / 10 ** int(t.get("tokenDecimal") or 18)
-                direction = "in" if to in wallets else "out"
-                events.append({"id": eid, "ts": ts, "cid": cid, "sym": sym, "dir": direction,
-                               "exchange": wallets[to] if direction == "in" else wallets[frm],
-                               "amount": amount, "usd": amount * price, "hash": t["hash"]})
-    events = [e for e in events if e["ts"] >= cutoff]
-    events.sort(key=lambda e: e["ts"], reverse=True)
-    return events
+                new.append(transfer_event(eid, ts, cid, sym, frm, to, wallets, amount, price, t["hash"], "eth"))
+    if calls and len(fails) == calls:
+        raise RuntimeError(f"every call failed: {fails[0]}")
+    return new
+
+
+@module("BNB Chain (exchange flows)")
+def fetch_bsc_transfers(targets, prices, seen, history):
+    """BEP-20 transfers into and out of known BNB Chain exchange wallets, read from a free public node
+    (Etherscan's free plan no longer covers BNB Chain). Scans the blocks since the last run, at most 3 hours."""
+    cursors = history.setdefault("bsc_cursor", {})
+    for cid in list(cursors):
+        if cid not in targets:
+            del cursors[cid]
+    if not targets:
+        return []
+    wallets = wallet_map("bsc")
+    wtopics = ["0x" + "0" * 24 + a[2:] for a in wallets]
+    head = int(rpc(BSC_RPCS, "eth_blockNumber", []), 16)
+    t_head = int(rpc(BSC_RPCS, "eth_getBlockByNumber", [hex(head), False])["timestamp"], 16)
+    t_old = int(rpc(BSC_RPCS, "eth_getBlockByNumber", [hex(head - 20000), False])["timestamp"], 16)
+    spb = max((t_head - t_old) / 20000, 0.05)  # seconds per block
+    new = []
+    for cid, track in targets.items():
+        price = (prices.get(cid) or {}).get("price")
+        sym = (prices.get(cid) or {}).get("sym") or cid.upper()
+        if not price:
+            continue
+        dec = int(track.get("dec") or 18)
+        frm = max(cursors.get(cid, head - int(3600 / spb)) + 1, head - int(3 * 3600 / spb))
+        while frm <= head:
+            to = min(frm + 2999, head)
+            for topics in ([TRANSFER_TOPIC, None, wtopics], [TRANSFER_TOPIC, wtopics]):  # into, out of
+                logs = rpc(BSC_RPCS, "eth_getLogs", [{"fromBlock": hex(frm), "toBlock": hex(to),
+                                                      "address": track["addr"], "topics": topics}])
+                for lg in logs:
+                    if len(lg.get("topics") or []) < 3:
+                        continue
+                    src, dst = "0x" + lg["topics"][1][-40:], "0x" + lg["topics"][2][-40:]
+                    if src in wallets and dst in wallets:
+                        continue
+                    eid = f'{lg["transactionHash"]}:{int(lg["logIndex"], 16)}'
+                    if eid in seen:
+                        continue
+                    seen.add(eid)
+                    amount = int(lg["data"], 16) / 10 ** dec if lg.get("data") not in (None, "0x") else 0
+                    ts = int(t_head - (head - int(lg["blockNumber"], 16)) * spb)
+                    new.append(transfer_event(eid, ts, cid, sym, src, dst, wallets, amount, price,
+                                              lg["transactionHash"], "bsc"))
+            frm = to + 1
+        cursors[cid] = head
+    return new
+
+
+def sol_token_balance(owner, mint):
+    r = rpc(SOL_RPCS, "getTokenAccountsByOwner", [owner, {"mint": mint}, {"encoding": "jsonParsed"}])
+    return sum(fnum(a["account"]["data"]["parsed"]["info"]["tokenAmount"].get("uiAmountString"), 0) or 0
+               for a in r["value"])
+
+
+@module("Exchange balances")
+def fetch_exchange_balances(targets, history):
+    """Hourly snapshot of what known exchange wallets hold, for native coins (ETH, BNB, SOL) and Solana
+    tokens, where transfer-by-transfer tracking isn't possible for free. Net flow = change in holdings.
+    A coin is skipped for the hour if any wallet fails, so a gap never looks like an outflow."""
+    res = history.setdefault("reserves", {})
+    for cid in list(res):
+        if cid not in targets:
+            del res[cid]
+    failed = []
+    for cid, track in targets.items():
+        chain = track["chain"]
+        wallets = wallet_map(chain)
+        if chain == "eth":
+            wallets = dict(list(wallets.items())[:20])  # balancemulti takes up to 20 addresses
+        per = {}
+        try:
+            if chain == "eth":
+                key = os.getenv("ETHERSCAN_API_KEY", "").strip()
+                if not key:
+                    raise RuntimeError("ETHERSCAN_API_KEY secret not set")
+                d = get_json("https://api.etherscan.io/v2/api", params={
+                    "chainid": 1, "module": "account", "action": "balancemulti", "address": ",".join(wallets),
+                    "tag": "latest", "apikey": key})
+                if not isinstance(d.get("result"), list) or len(d["result"]) != len(wallets):
+                    raise RuntimeError(str(d.get("result"))[:120])
+                for r in d["result"]:
+                    n = wallets[r["account"].lower()]
+                    per[n] = per.get(n, 0) + int(r["balance"]) / 1e18
+            elif chain == "bsc":
+                for a, n in wallets.items():
+                    per[n] = per.get(n, 0) + int(rpc(BSC_RPCS, "eth_getBalance", [a, "latest"]), 16) / 1e18
+            elif track["kind"] == "native":
+                r = rpc(SOL_RPCS, "getMultipleAccounts", [list(wallets), {"encoding": "base64",
+                                                                         "dataSlice": {"offset": 0, "length": 0}}])
+                for (a, n), v in zip(wallets.items(), r["value"]):
+                    per[n] = per.get(n, 0) + (v or {}).get("lamports", 0) / 1e9
+            else:
+                for a, n in wallets.items():
+                    per[n] = per.get(n, 0) + sol_token_balance(a, track["addr"])
+                    time.sleep(0.25)
+        except Exception as e:  # noqa: BLE001
+            failed.append(f"{cid}: {str(e)[:120]}")
+            continue
+        sig = hashlib.sha1(f'{track.get("addr", "native")}|{",".join(sorted(wallets))}'.encode()).hexdigest()[:12]
+        r = res.get(cid)
+        if not r or r.get("sig") != sig:  # wallet list changed: restart the series
+            r = {"sig": sig, "pts": []}
+        r["pts"] = trim(r["pts"] + [[NOW_TS, {k: round(v, 4) for k, v in per.items()}]], 8)
+        res[cid] = r
+    if failed:
+        raise RuntimeError("; ".join(failed)[:300])
+    return res
+
+
+def reserve_flows(r, price):
+    """Turn hourly balance snapshots into the same in/out shape as transfer flows."""
+    pts = (r or {}).get("pts") or []
+    if not pts or not price:
+        return None
+    tot = [(t, sum(v.values())) for t, v in pts]
+    out = {"in_24h": 0.0, "out_24h": 0.0, "in_7d": 0.0, "out_7d": 0.0, "method": "balance", "since": tot[0][0],
+           "balance": tot[-1][1], "balance_usd": tot[-1][1] * price,
+           "by_exchange": {k: round(v * price) for k, v in sorted(pts[-1][1].items(), key=lambda kv: -kv[1])
+                           if v * price >= 1e5}}
+    for (_, a), (t1, b) in zip(tot, tot[1:]):
+        d = (b - a) * price
+        side = "in" if d > 0 else "out"
+        if NOW_TS - t1 <= 7 * 86400:
+            out[f"{side}_7d"] += abs(d)
+        if NOW_TS - t1 <= 86400:
+            out[f"{side}_24h"] += abs(d)
+    return out
+
+
+# ------------------------------------------------------------------ positioning (Coinalyze)
+
+def cz_markets(cache):
+    """Perpetual markets on Binance, Bybit and OKX, by base asset. Cached for 3 days."""
+    m = cache.get("cz")
+    if m and NOW_TS - m.get("ts", 0) < 3 * 86400:
+        return m["m"]
+    codes = {e["code"]: e["name"] for e in cz_get("exchanges")
+             if (e.get("name") or "").lower().startswith(("binance", "bybit", "okx"))}
+    quotes = ("USDT", "USDC", "USD")
+    best = {}
+    for f in cz_get("future-markets"):
+        if not f.get("is_perpetual") or f.get("margined") != "STABLE" or f.get("exchange") not in codes \
+                or f.get("quote_asset") not in quotes:
+            continue
+        k, rank = ((f.get("base_asset") or "").upper(), f["exchange"]), quotes.index(f["quote_asset"])
+        if k not in best or rank < best[k][0]:
+            best[k] = (rank, [f["symbol"], codes[f["exchange"]], bool(f.get("has_long_short_ratio_data")),
+                              bool(f.get("has_buy_sell_data"))])
+    out = {}
+    for (base, _), (_, row) in best.items():
+        out.setdefault(base, []).append(row)
+    if not out:
+        raise RuntimeError("no Binance/Bybit/OKX perps listed")
+    cache["cz"] = {"ts": NOW_TS, "m": out}
+    return out
+
+
+def cz_history(path, symbols, seconds, **extra):
+    out = {}
+    for i in range(0, len(symbols), 20):
+        rows = cz_get(path, symbols[i:i + 20], interval="1hour", **{"from": NOW_TS - seconds, "to": NOW_TS}, **extra)
+        for row in rows:
+            out[row["symbol"]] = row.get("history") or []
+    return out
+
+
+def pct_val(v):
+    v = fnum(v)
+    return None if v is None else v * 100 if v <= 1 else v  # Coinalyze longs % may come as 0.62 or 62
+
+
+@module("Coinalyze (positioning)")
+def fetch_positioning(targets, cache):
+    """Open interest, liquidations, long/short account ratio and taker buy share, summed or averaged
+    across Binance, Bybit and OKX. targets: key -> (ticker, include taker volume)."""
+    mk = cz_markets(cache)
+    sets = {}
+    for key, (sym, _) in targets.items():
+        rows = mk.get(sym.upper()) or mk.get("1000" + sym.upper())
+        if rows:
+            sets[key] = rows
+    if not sets:
+        raise RuntimeError("no matching perp markets")
+    every = sorted({r[0] for rows in sets.values() for r in rows})
+    oi = cz_history("open-interest-history", every, 8 * 86400, convert_to_usd="true")
+    liq = cz_history("liquidation-history", every, 25 * 3600, convert_to_usd="true")
+    ls = cz_history("long-short-ratio-history", sorted({r[0] for rows in sets.values() for r in rows if r[2]}), 25 * 3600)
+    tk = sorted({r[0] for k, rows in sets.items() if targets[k][1] for r in rows if r[3]})
+    ohlcv = cz_history("ohlcv-history", tk, 25 * 3600) if tk else {}
+    day = NOW_TS - 86400
+    out = {}
+    for key, rows in sets.items():
+        syms = [r[0] for r in rows]
+        # open interest summed across exchanges, at the hours every exchange reported
+        maps = [{p["t"]: fnum(p.get("c")) for p in oi[s]} for s in syms if oi.get(s)]
+        series = []
+        if maps:
+            common = set(maps[0]).intersection(*maps[1:])
+            series = [[t, sum(m[t] for m in maps)] for t in sorted(common) if all(m[t] is not None for m in maps)]
+        recent = [v for t, v in series if t >= NOW_TS - 7 * 86400]
+        longs_now, longs_then, buy = [], [], []
+        for s in syms:
+            h = ls.get(s) or []
+            if h:
+                longs_now.append(pct_val(h[-1].get("l")))
+                longs_then.append(pct_val(min(h, key=lambda p: abs(p["t"] - day)).get("l")))
+            c = [p for p in ohlcv.get(s, []) if p["t"] >= day]
+            v = sum(fnum(p.get("v"), 0) or 0 for p in c)
+            if v:
+                buy.append(sum(fnum(p.get("bv"), 0) or 0 for p in c) / v * 100)
+        mean = lambda xs: (sum(x for x in xs if x is not None) / len([x for x in xs if x is not None])  # noqa: E731
+                           if any(x is not None for x in xs) else None)
+        oi_now = series[-1][1] if series else None
+        out[key] = {
+            "oi_usd": oi_now, "oi_series": series,
+            "oi_chg_24h": pct_change(oi_now, series_at(series, 86400, tolerance=3 * 3600)),
+            "oi_chg_7d": pct_change(oi_now, series_at(series, 7 * 86400, tolerance=6 * 3600)),
+            "oi_off_7d_max": pct_change(oi_now, max(recent)) if recent else None,
+            "liq_long_24h": sum(fnum(p.get("l"), 0) or 0 for s in syms for p in liq.get(s, []) if p["t"] >= day),
+            "liq_short_24h": sum(fnum(p.get("s"), 0) or 0 for s in syms for p in liq.get(s, []) if p["t"] >= day),
+            "long_pct": mean(longs_now), "long_pct_24h": mean(longs_then),
+            "taker_buy_pct": mean(buy),
+            "exchanges": sorted({r[1] for r in rows}),
+        }
+    return out
+
+
+def deriv_summary(d):
+    if not d:
+        return None
+    return {k: (r2(v, 2) if isinstance(v, float) else v) for k, v in d.items() if k != "oi_series"}
 
 
 # ------------------------------------------------------------------ mapping
@@ -511,7 +819,7 @@ def score_coin(c, fin, btc):
     }
 
 
-def checklist(c, perp, oi_hist, flows, has_flow_tracking):
+def checklist(c, perp, oi_hist, flows, has_flow_tracking, agg=None):
     items = []
     if perp:
         f = perp["funding_8h_pct"]
@@ -519,18 +827,26 @@ def checklist(c, perp, oi_hist, flows, has_flow_tracking):
     else:
         items.append([None, "No perp market"])
 
-    if perp and oi_hist and series_at(oi_hist, 3 * 86400, tolerance=36 * 3600) is not None:
+    if agg and agg.get("oi_off_7d_max") is not None and len(agg.get("oi_series") or []) > 72:
+        off = agg["oi_off_7d_max"]
+        items.append([off <= -TH["flush_oi_drop_pct"], f"OI {off:+.1f}% vs 7-day high, all exchanges"])
+    elif perp and oi_hist and series_at(oi_hist, 3 * 86400, tolerance=36 * 3600) is not None:
         recent = [p[1] for p in oi_hist if p[0] >= NOW_TS - 7 * 86400] + [perp["oi_usd"]]
         off = pct_change(perp["oi_usd"], max(recent))
         items.append([off <= -TH["flush_oi_drop_pct"], f"OI {off:+.1f}% vs 7-day high"])
     else:
         items.append([None, "Building OI history"])
 
-    if has_flow_tracking and flows and (flows["in_7d"] or flows["out_7d"]):
+    if has_flow_tracking and flows and flows.get("method") == "balance" and NOW_TS - flows["since"] < 86400:
+        items.append([None, "Building exchange-balance history"])
+    elif has_flow_tracking and flows and (flows["in_7d"] or flows["out_7d"]):
         net = flows["in_7d"] - flows["out_7d"]
-        items.append([net < 0, f"Net {'inflow' if net > 0 else 'outflow'} ${abs(net) / 1e6:.1f}M over 7d"])
+        if flows.get("method") == "balance":
+            items.append([net < 0, f"Exchange balances {'up' if net > 0 else 'down'} ${abs(net) / 1e6:.1f}M over 7d"])
+        else:
+            items.append([net < 0, f"Net {'inflow' if net > 0 else 'outflow'} ${abs(net) / 1e6:.1f}M over 7d"])
     else:
-        items.append([None, "Tracked for shortlisted Ethereum tokens" if not has_flow_tracking else "No large moves"])
+        items.append([None, "Not tracked on this coin's chain" if not has_flow_tracking else "No large moves"])
 
     soon = [u for u in CONFIG.get("unlocks", []) if u["sym"].upper() == c["sym"]
             and 0 <= (datetime.fromisoformat(u["date"]).replace(tzinfo=timezone.utc) - NOW).days
@@ -550,13 +866,19 @@ def checklist(c, perp, oi_hist, flows, has_flow_tracking):
 
 # ------------------------------------------------------------------ leverage gauges
 
-def pressure(entry, hist):
+def pressure(entry, hist, agg=None):
     funding, oi, vol = entry["funding_8h_pct"], entry["oi_usd"], entry["vol_24h_usd"] or 0
     oi_24h, oi_7d = series_at(hist, 86400), series_at(hist, 7 * 86400)
     oi_max = max((p[1] for p in hist if p[0] >= NOW_TS - 7 * 86400), default=None)
     px_7d = series_at(hist, 7 * 86400, idx=2)
     oi_chg_24h, oi_chg_7d = pct_change(oi, oi_24h), pct_change(oi, oi_7d)
     px_chg_7d, off_max = pct_change(entry["price"], px_7d), pct_change(oi, oi_max)
+    oi_shown, warming = oi, oi_7d is None
+    if agg and agg.get("oi_usd"):
+        # open-interest changes from Binance + Bybit + OKX: a wider view than Hyperliquid alone, with
+        # 8 days of history from day one. Same rules; OI vs volume stays on Hyperliquid's own numbers.
+        oi_shown, oi_chg_24h, oi_chg_7d, off_max = agg["oi_usd"], agg["oi_chg_24h"], agg["oi_chg_7d"], agg["oi_off_7d_max"]
+        warming = oi_chg_7d is None
 
     score = clamp(funding / 0.05, 0, 1) * 45
     if oi_chg_7d is not None:
@@ -581,11 +903,12 @@ def pressure(entry, hist):
     else:
         state = "Calm"
     return {"pressure": score, "state": state, "flushed": flushed, "funding_8h_pct": round(funding, 4),
-            "oi_usd": oi, "oi_chg_24h": oi_chg_24h, "oi_chg_7d": oi_chg_7d, "oi_off_7d_max": off_max,
-            "price": entry["price"], "chg_24h": entry.get("chg_24h_pct"), "warming_up": oi_7d is None}
+            "oi_usd": oi_shown, "oi_chg_24h": oi_chg_24h, "oi_chg_7d": oi_chg_7d, "oi_off_7d_max": off_max,
+            "price": entry["price"], "chg_24h": entry.get("chg_24h_pct"), "warming_up": warming,
+            "deriv": deriv_summary(agg)}
 
 
-def build_markets(hl, history):
+def build_markets(hl, history, deriv=None):
     hist = history.setdefault("markets", {})
     entries = {m: hl[m] for m in CONFIG["markets"] if m in hl}
     alts = [v for k, v in hl.items() if k not in CONFIG["markets"]]
@@ -604,7 +927,7 @@ def build_markets(hl, history):
         s = hist.setdefault(name, [])
         s.append([NOW_TS, e["oi_usd"], e["price"], e["funding_8h_pct"]])
         hist[name] = trim(s, 45)
-        out[name] = pressure(e, hist[name])
+        out[name] = pressure(e, hist[name], (deriv or {}).get(name))
     return out
 
 
@@ -659,6 +982,16 @@ def collect_alerts(markets, shortlist_out, events, mvrv, state):
         if d["flushed"]:
             alerts.append({"key": f"flush:{m}", "level": "good", "title": f"{n}: leverage flushed",
                            "body": f"OI {d['oi_off_7d_max']:+.0f}% off its 7-day high and funding reset. Check entry lights."})
+        dv = d.get("deriv") or {}
+        if dv.get("oi_usd"):
+            bar = TH.get("liq_alert_pct_of_oi", 1.5) / 100 * dv["oi_usd"]
+            if (dv.get("liq_long_24h") or 0) >= bar:
+                alerts.append({"key": f"liqL:{m}", "level": "good", "title": f"{n}: ${dv['liq_long_24h'] / 1e6:,.0f}M of longs liquidated",
+                               "body": "Forced selling in the last 24h (Binance, Bybit, OKX). Long flushes like this often "
+                                       "mark a local low. Check entry lights."})
+            if (dv.get("liq_short_24h") or 0) >= bar:
+                alerts.append({"key": f"liqS:{m}", "level": "hot", "title": f"{n}: ${dv['liq_short_24h'] / 1e6:,.0f}M of shorts liquidated",
+                               "body": "A short squeeze in the last 24h pushed price up on forced buying. Don't chase it."})
     prev = state.get("lights", {})
     for c in shortlist_out:
         if c["light"] == "green" and prev.get(c["id"]) != "green":
@@ -680,13 +1013,13 @@ def collect_alerts(markets, shortlist_out, events, mvrv, state):
 
 # ------------------------------------------------------------------ assembly
 
-def coin_record(c, fin, btc, perp_name, hl, oi_hist, flows, tracked):
+def coin_record(c, fin, btc, perp_name, hl, oi_hist, flows, tracked, agg=None):
     sc = score_coin(c, fin, btc)
     perp = hl.get(perp_name) if perp_name else None
     oi7 = None
     if perp and oi_hist:
         oi7 = pct_change(perp["oi_usd"], series_at(oi_hist, 7 * 86400, tolerance=36 * 3600))
-    chk = checklist(c, perp, oi_hist, flows, tracked)
+    chk = checklist(c, perp, oi_hist, flows, tracked, agg)
     return {
         "id": c["id"], "sym": c["sym"], "name": c["name"], "rank": c.get("rank"),
         "price": c["price"], "mcap": c["mcap"], "fdv": c.get("fdv"), "vol": c.get("vol"),
@@ -713,7 +1046,6 @@ def main():
     log(f"run type: {'FULL (universe + shortlist)' if full else 'shortlist only'}; shortlist={len(shortlist)}")
 
     hl = fetch_hyperliquid() or {}
-    markets = build_markets(hl, history) if hl else {}
 
     # -------- universe (every few hours)
     universe_doc = load(UNIVERSE_PATH, None)
@@ -764,11 +1096,34 @@ def main():
     # -------- shortlist (every run)
     sl_rows = fetch_shortlist_markets(shortlist) or {}
     contracts = refresh_contracts(shortlist, cache) or cache.get("contracts", {})
-    events = fetch_exchange_transfers(shortlist, sl_rows, contracts, history)
-    if events is not None:
-        history["transfers"] = events
-    events = history.get("transfers", [])
+    tracks = {cid: (contracts.get(cid) or {}).get("track") for cid in shortlist}
+    tracks = {cid: t for cid, t in tracks.items() if t}
+
+    # exchange flows: transfer by transfer for Ethereum and BNB Chain tokens...
+    events = [e for e in history.get("transfers", []) if e["ts"] >= NOW_TS - 8 * 86400]
+    for e in events:
+        e.setdefault("chain", "eth")
+    seen = {e["id"] for e in events}
+    for fn, chain in ((fetch_eth_transfers, "eth"), (fetch_bsc_transfers, "bsc")):
+        tg = {cid: t for cid, t in tracks.items() if t["kind"] == "token" and t["chain"] == chain}
+        events += fn(tg, sl_rows, seen, history) or []
+    events.sort(key=lambda e: e["ts"], reverse=True)
+    history["transfers"] = events
     flows = flow_summary(events)
+    # ...and from hourly exchange balances for native coins and Solana tokens
+    bal = {cid: t for cid, t in tracks.items() if t["kind"] == "native" or t["chain"] == "sol"}
+    reserves = fetch_exchange_balances(bal, history) if bal else {}
+    reserves = reserves or history.get("reserves", {})
+    for cid in bal:
+        f = reserve_flows(reserves.get(cid), (sl_rows.get(cid) or {}).get("price"))
+        if f:
+            flows[cid] = f
+
+    # -------- positioning across exchanges, then the leverage gauges
+    targets = {m: (m, True) for m in CONFIG["markets"]}
+    targets.update({cid: (r["sym"], False) for cid, r in sl_rows.items()})
+    deriv = fetch_positioning(targets, cache) or {}
+    markets = build_markets(hl, history, deriv) if hl else {}
 
     perp_map = dict(cache.get("perp_map", {}))
     if sl_rows:
@@ -786,12 +1141,17 @@ def main():
             s = s_hist.setdefault(cid, [])
             s.append([NOW_TS, hl[pname]["oi_usd"], hl[pname]["price"], hl[pname]["funding_8h_pct"]])
             s_hist[cid] = trim(s, 45)
+        agg = deriv.get(cid)
         rec = coin_record(row, fin_all.get(cid), btc, pname, hl, s_hist.get(cid),
-                          flows.get(cid), bool((contracts.get(cid) or {}).get("eth")))
+                          flows.get(cid), cid in tracks, agg)
         rec["spark"] = [round(p, 8) for p in row["_spark"][::4]]
-        rec["oi_series"] = [round(p[1] / 1e6, 2) for p in s_hist.get(cid, [])[-168:]]
+        if agg and agg.get("oi_series"):
+            rec["oi_series"], rec["oi_src"] = [round(p[1] / 1e6, 2) for p in agg["oi_series"][-168:]], "all"
+        else:
+            rec["oi_series"], rec["oi_src"] = [round(p[1] / 1e6, 2) for p in s_hist.get(cid, [])[-168:]], "hl"
+        rec["deriv"] = deriv_summary(agg)
         rec["flows"] = flows.get(cid)
-        rec["eth_contract"] = (contracts.get(cid) or {}).get("eth") or None
+        rec["track"] = tracks.get(cid)
         shortlist_out.append(rec)
     for cid in list(s_hist):
         if cid not in shortlist:
@@ -811,6 +1171,7 @@ def main():
         "macro": cache.get("macro"),
         "mvrv": cache.get("mvrv"),
         "transfers": [e for e in events if e["usd"] >= TH["whale_list_usd"]][:50],
+        "wallet_counts": {c: len(wallet_map(c)) for c in WALLET_KEYS},
         "alerts": state.get("recent", []),
         "errors": ERRORS,
         "thresholds": TH,

@@ -45,11 +45,12 @@
     "whale_alert_usd": 2000000,
     "whale_list_usd": 500000,
     "unlock_window_days": 14,
-    "alert_cooldown_hours": 12
+    "alert_cooldown_hours": 12,
+    "liq_alert_pct_of_oi": 1.5
   },
 
   "exchange_wallets": {
-    "_note": "Ethereum hot wallets. Verify on etherscan.io (the label shows on the address page) and add more as you find them.",
+    "_note": "Ethereum exchange wallets, all matching Dune's cex_evms labels (github.com/duneanalytics/spellbook). Add more as you find them.",
     "0x28c6c06298d514db089934071355e5743bf21d60": "Binance",
     "0x21a31ee1afc51d94c2efccaa2092ad1028285549": "Binance",
     "0xdfd5293d8e347dfe59e90efd55b2956a1343963d": "Binance",
@@ -64,5 +65,52 @@
     "0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43": "Coinbase",
     "0x6cc5f688a315f3dc28a7781717a9a798a59fda7b": "OKX",
     "0x2910543af39aba0cd09dbb2d50200b3e800a63d2": "Kraken"
+  },
+
+  "exchange_wallets_bsc": {
+    "_note": "BNB Chain exchange wallets: Dune cex_evms labels, each confirmed active on BNB Chain (Oct 2026).",
+    "0x8894e0a0c962cb723c1976a4421c95949be2d4e3": "Binance",
+    "0xe2fc31f816a9b94326492132018c3aecc4a93ae1": "Binance",
+    "0xa180fe01b906a1be37be6c534a3300785b20d947": "Binance",
+    "0xeb2d2f1b8c558a40207669291fda468e50c8a0bb": "Binance",
+    "0x161ba15a5f335c9f06bb5bbb0a9ce14076fbb645": "Binance",
+    "0xf977814e90da44bfa03b6295a0616a897441acec": "Binance",
+    "0x5a52e96bacdabb82fd05763e25335261b270efcb": "Binance",
+    "0xf89d7b9c864f589bbf53a82105107622b35eaa40": "Bybit",
+    "0x318d2aae4c99c2e74f7b5949fa1c34df837789b8": "Bybit",
+    "0x3b5a23f6207d87b423c6789d2625ea620423b32d": "OKX",
+    "0x42cf18596ee08e877d532df1b7cf763059a7ea57": "OKX",
+    "0x97b9d2102a9a65a26e1ee82d59e42d1b73b68689": "Bitget",
+    "0x0639556f03714a74a5feeaf5736a4a64ff70d206": "Bitget",
+    "0x5bdf85216ec1e38d6458c870992a69e38e03f7ef": "Bitget",
+    "0x53f78a071d04224b8e254e243fffc6d9f2f3fa23": "KuCoin",
+    "0x635308e731a878741bfec299e67f5fd28c7553d9": "KuCoin",
+    "0x0d0707963952f2fba59dd06f2b425ace40b492fe": "Gate",
+    "0x1c4b70a3968436b9a0a9cf5205c787eb81bb558c": "Gate",
+    "0x625b02b687ec38f3085af5b108dda410775fa76a": "Crypto.com",
+    "0xb428523cdda53640a62e9f26c2d8613a9159b282": "Crypto.com",
+    "0xdd3cb5c974601bc3974d908ea4a86020f9999e0c": "HTX"
+  },
+
+  "exchange_wallets_sol": {
+    "_note": "Solana exchange wallets: Dune cex_solana labels, each confirmed active on Solana (Oct 2026). No active OKX wallet is labelled yet.",
+    "5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9": "Binance",
+    "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM": "Binance",
+    "3gd3dqgtJ4jWfBfLYTX67DALFetjc5iS72sCgRhCkW2u": "Binance",
+    "GBrURzmtWujJRTA3Bkvo7ZgWuZYLMMwPCwre7BejJXnK": "Binance",
+    "H8sMJSCQxfKiFTCfDR3DUMLPwcRbM61LGFJ8N4dK3WjS": "Coinbase",
+    "2AQdpHJ2JpcEgPiATUXjQxA8QmafFegfQwSLWSprPicm": "Coinbase",
+    "GJRs4FwHtemZ5ZE9x3FNvJ8TMwitKTh21yxdRPqn7npE": "Coinbase",
+    "42brAgAVNzMBP7aaktPvAmBSPEkehnFQejiZc53EpJFd": "Bybit",
+    "AC5RDfQFmDS1deWZos921JfqscXdByf8BKHs5ACWjtW2": "Bybit",
+    "A77HErqtfN1hLLpvZ9pCtu66FEtM8BveoaKbbMoZ4RiR": "Bitget",
+    "BmFdpraQhkiDQE6SnfG5omcA1VwzqfXrwtNYBwWTymy6": "KuCoin",
+    "u6PJ8DtQuPFnfmwHbGFULQ4u4EgjDiyYKjVEsynXq2w": "Gate",
+    "ASTyfSima4LLAdDgoFGkgqoKowG1LZFDr9fAQrg7iaJZ": "MEXC",
+    "6FEVkH17P9y8Q9aCkDdPcMDjvj7SVxrTETaYEm8f51Jy": "Crypto.com",
+    "AobVSwdW9BbpMdJvTqeCN4hPAmh4rHm7vwLnQ5ATSyrS": "Crypto.com",
+    "krakeNd6ednDPEXxHAmoBs1qKVM8kLg79PvWF2mhXV1": "Kraken",
+    "5bJcc9eb2XE7mqcET2xDuAdMGuXWybb4YPmAHLjKLhQG": "HTX",
+    "8NBEbxLknGv5aRYefFrW2qFXoDZyi9fSHJNiJRvEcMBE": "HTX"
   }
 }
