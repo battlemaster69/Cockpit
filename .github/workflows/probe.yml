@@ -1,0 +1,25 @@
+name: Probe data sources (temporary)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Which hourly-candle sources answer from GitHub's servers
+        run: |
+          probe() { printf '%-28s ' "$1"; curl -s -m 20 -o /tmp/body -w '%{http_code} ' "$2"; head -c 90 /tmp/body; echo; }
+          probe "Binance data-api spot" "https://data-api.binance.vision/api/v3/klines?symbol=ONEUSDT&interval=1h&limit=2"
+          probe "Binance api spot" "https://api.binance.com/api/v3/klines?symbol=ONEUSDT&interval=1h&limit=2"
+          probe "Binance futures" "https://fapi.binance.com/fapi/v1/klines?symbol=ONEUSDT&interval=1h&limit=2"
+          probe "Bybit" "https://api.bybit.com/v5/market/kline?category=linear&symbol=ONEUSDT&interval=60&limit=2"
+          probe "OKX" "https://www.okx.com/api/v5/market/candles?instId=BTC-USDT&bar=1H&limit=2"
+          probe "KuCoin" "https://api.kucoin.com/api/v1/market/candles?type=1hour&symbol=BTC-USDT"
+          probe "Gate" "https://api.gateio.ws/api/v4/spot/candlesticks?currency_pair=BTC_USDT&interval=1h&limit=2"
+          probe "MEXC" "https://api.mexc.com/api/v3/klines?symbol=BTCUSDT&interval=60m&limit=2"
+          probe "Binance data-api tickers" "https://data-api.binance.vision/api/v3/ticker/24hr?symbol=BTCUSDT"
