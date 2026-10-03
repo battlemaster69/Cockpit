@@ -235,6 +235,12 @@ const ago = iso => {
   return Math.round(s / 86400) + " d ago";
 };
 const agoTs = ts => ago(new Date(ts * 1000).toISOString());
+// clock time in the phone's own timezone, with the date when it isn't today
+const clock = iso => {
+  const d = new Date(iso), t = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return d.toDateString() === new Date().toDateString() ? t : d.toLocaleDateString([], { day: "numeric", month: "short" }) + ", " + t;
+};
+const when = iso => `${clock(iso)} (${ago(iso)})`;
 function toast(msg) {
   const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); t.textContent = msg;
   document.body.appendChild(t); setTimeout(() => t.remove(), 3200);
@@ -415,7 +421,7 @@ function renderUniverseRows() {
 function renderUniverse() {
   if (!UNI) return `<p class="empty">The universe file hasn't been built yet. It appears after the first full run.</p>`;
   const filters = [["all", "All"], ["fin", "Has financials"], ["perp", "Has perp"], ["green", "Green light"], ["short", "Shortlisted"]];
-  return `<p class="hint" style="margin-top:14px">Top ${UNI.count} coins by market cap, scored automatically every 4 hours (stablecoins and wrapped tokens left out). Updated ${ago(UNI.generated_at)}.</p>
+  return `<p class="hint" style="margin-top:14px">Top ${UNI.count} coins by market cap, scored automatically every 4 hours (stablecoins and wrapped tokens left out). Updated ${when(UNI.generated_at)}.</p>
     <div class="toolbar">
       <input class="search" id="q" type="search" placeholder="Search name or ticker" value="${esc(ui.q)}" aria-label="Search coins">
       <select class="sort" id="sort" aria-label="Sort by">
@@ -529,7 +535,8 @@ function detail(c) {
       <div style="display:flex;gap:8px;margin:12px 0 4px">
         <button class="btn ${inShort ? "" : "primary"}" data-toggle="${esc(c.id)}">${inShort ? "Remove from shortlist" : "Add to shortlist"}</button>
       </div>
-      ${c.fresh ? `<p class="hint" style="margin:6px 0 0">Shortlisted: refreshed hourly, last ${ago(DATA.generated_at)}.</p>` : ""}
+      ${c.fresh ? `<p class="hint" style="margin:6px 0 0">Shortlisted: refreshed hourly, last at ${when(DATA.generated_at)}.</p>`
+        : UNI ? `<p class="hint" style="margin:6px 0 0">Universe data from ${when(UNI.generated_at)}.</p>` : ""}
 
       <h3>Report card</h3>
       <div class="bars">${bars}</div>
@@ -679,25 +686,48 @@ document.addEventListener("change", e => {
 });
 window.addEventListener("popstate", () => closeSheet(true));
 
+function stamp() {
+  if (!DATA) return;
+  const el = $("#stamp"), stale = (Date.now() - new Date(DATA.generated_at)) / 3.6e6 > 2;
+  el.textContent = "Updated " + when(DATA.generated_at) + (stale ? ", tracker may be paused" : "");
+  el.title = "Data collected " + new Date(DATA.generated_at).toLocaleString();
+  el.classList.toggle("stale", stale);
+}
+const getJson = p => fetch(p + "?t=" + Date.now(), { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
+function absorb(data, uni) {
+  DATA = data; if (uni) UNI = uni;
+  BYID = new Map();
+  (UNI?.coins || []).forEach(c => BYID.set(c.id, c));
+  (data.shortlist || []).forEach(c => { if (!BYID.has(c.id)) BYID.set(c.id, c); });
+}
+// pick up a new hourly run without a manual reload: on return to the page and every 5 minutes
+async function refresh() {
+  if (document.hidden || !DATA || $("#layer").innerHTML) return stamp();  // don't redraw under an open sheet
+  const data = await getJson("data.json");
+  if (data && data.generated_at !== DATA.generated_at) {
+    const uni = data.universe_at !== UNI?.generated_at ? await getJson("universe.json") : null;
+    const y = scrollY; absorb(data, uni); render(); scrollTo(0, y);
+  }
+  stamp();
+}
+
 (async function boot() {
-  const get = p => fetch(p + "?t=" + Date.now(), { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
-  const [data, uni, sl] = await Promise.all([get("data.json"), get("universe.json"), get("shortlist.json")]);
+  const [data, uni, sl] = await Promise.all([getJson("data.json"), getJson("universe.json"), getJson("shortlist.json")]);
   if (!data) {
     $("#stamp").textContent = "No data";
     $("#app").innerHTML = `<p class="empty">No data yet. Open your repo on GitHub, go to Actions, pick <b>Collect market data</b> and press <b>Run workflow</b>. This page fills in a few minutes later.</p>`;
     return;
   }
-  DATA = data; UNI = uni;
-  (uni?.coins || []).forEach(c => BYID.set(c.id, c));
-  (data.shortlist || []).forEach(c => { if (!BYID.has(c.id)) BYID.set(c.id, c); });
+  absorb(data, uni);
   const cached = store.get("shortlist_cache");
   SHORT = new Set(cached && Date.now() - cached.at < 15 * 60 * 1000 ? cached.coins : (sl?.coins || []));
-  const hrs = (Date.now() - new Date(data.generated_at)) / 3.6e6;
-  $("#stamp").textContent = "Updated " + ago(data.generated_at);
-  if (hrs > 3) { $("#stamp").classList.add("stale"); $("#stamp").textContent += ", tracker may be paused"; }
+  stamp();
   if (!TABS.some(([id]) => id === current)) current = "shortlist";
   render();
   if (gh().token) ghFetchShortlist().then(r => { SHORT = new Set(r.coins); render(); }).catch(() => {});
+  setInterval(refresh, 5 * 60 * 1000);
+  setInterval(stamp, 60 * 1000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
 })();
 </script>
 </body>

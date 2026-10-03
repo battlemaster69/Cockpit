@@ -3,10 +3,14 @@ name: Collect market data
 on:
   schedule:
     - cron: "7 * * * *"      # every hour (UTC). The script refreshes the full universe every 4h by itself.
-  workflow_dispatch:
+  workflow_dispatch:         # manual runs, and the hourly backup timer on cron-job.org (GitHub's scheduler is best-effort)
     inputs:
       full:
         description: "Force a full universe refresh"
+        type: boolean
+        default: false
+      auto:
+        description: "Started by a timer: skip if data is under 25 minutes old"
         type: boolean
         default: false
 
@@ -24,14 +28,26 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # GitHub's schedule and the backup timer can both fire in the same hour: the second one skips
+      - name: Skip if data is fresh
+        id: gate
+        if: github.event_name == 'schedule' || inputs.auto
+        run: |
+          age=$(python3 -c "import json,time,datetime; d=json.load(open('docs/data.json')); print(int(time.time() - datetime.datetime.fromisoformat(d['generated_at']).timestamp()))" 2>/dev/null || echo 999999)
+          echo "data is ${age}s old"
+          if [ "$age" -lt 1500 ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; echo "Fresh enough, skipping this run."; fi
+
       - uses: actions/setup-python@v6
+        if: steps.gate.outputs.skip != 'true'
         with:
           python-version: "3.12"
           cache: pip
 
       - run: pip install -r requirements.txt
+        if: steps.gate.outputs.skip != 'true'
 
       - name: Collect
+        if: steps.gate.outputs.skip != 'true'
         env:
           COINGECKO_API_KEY: ${{ secrets.COINGECKO_API_KEY }}
           ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
@@ -41,7 +57,7 @@ jobs:
         run: python collector/collect.py ${{ inputs.full && '--full' || '' }}
 
       - name: Save results
-        if: always()
+        if: always() && steps.gate.outputs.skip != 'true'
         run: |
           git config user.name "cockpit-bot"
           git config user.email "cockpit-bot@users.noreply.github.com"
