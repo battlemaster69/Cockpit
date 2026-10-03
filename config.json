@@ -1,0 +1,68 @@
+{
+  "_readme": "Universe = top coins by market cap from CoinGecko, scored automatically. 'overrides' keeps the manual scores from our chat (keyed by CoinGecko API id): F = fundamentals, VC = value capture, CAT = catalyst; 'chat' is the full original report card shown as a yellow tick. Your shortlist lives in docs/shortlist.json and is edited from the dashboard.",
+
+  "universe_size": 500,
+  "universe_every_hours": 4,
+
+  "exclude_symbols": ["USDT","USDC","DAI","USDE","USDS","FDUSD","TUSD","PYUSD","USD1","USDD","FRAX","GHO","RLUSD","USDX","USDY","BUIDL","USDG","USDF","SUSDE","SUSDS","USDO","USD0","EURC","XAUT","PAXG","WBTC","WETH","STETH","WSTETH","WEETH","RETH","CBBTC","CBETH","JITOSOL","MSOL","BNSOL","LBTC","SOLVBTC","TBTC","BTCB","RSETH","EZETH","METH","OSETH","SFRXETH","CLBTC","USDTB","USYC","OUSG","BSC-USD","SAVAX","STHYPE","KHYPE","JUPSOL","DSOL"],
+  "exclude_name_keywords": ["wrapped", "staked", "bridged", "restaked", "liquid staking", "tokenized", " usd", "usd ", "stablecoin", "tether", "dollar", "treasury"],
+
+  "overrides": {
+    "chainlink":               {"F": 9, "VC": 6, "CAT": 8, "chat": [9, 8, 6, 8, 7]},
+    "aave":                    {"F": 9, "VC": 9, "CAT": 7, "chat": [9, 6, 9, 7, 7]},
+    "binancecoin":             {"F": 9, "VC": 8, "CAT": 7, "chat": [9, 5, 8, 7, 7]},
+    "sky":                     {"F": 9, "VC": 6, "CAT": 6, "chat": [9, 8, 6, 6, 7]},
+    "uniswap":                 {"F": 8, "VC": 8, "CAT": 8, "chat": [8, 5, 8, 8, 6]},
+    "hyperliquid":             {"F": 9, "VC": 9, "CAT": 8, "chat": [9, 4, 9, 8, 6]},
+    "syrup":                   {"F": 8, "VC": 7, "CAT": 6, "chat": [8, 8, 7, 6, 5]},
+    "ondo-finance":            {"F": 7, "VC": 5, "CAT": 8, "chat": [7, 8, 5, 8, 6]},
+    "jupiter-exchange-solana": {"F": 8, "VC": 7, "CAT": 6, "chat": [8, 6, 7, 6, 6]},
+    "pendle":                  {"F": 7, "VC": 6, "CAT": 7, "chat": [7, 8, 6, 7, 5]},
+    "bittensor":               {"F": 7, "VC": 6, "CAT": 7, "chat": [7, 6, 6, 7, 5]},
+    "stellar":                 {"F": 6, "VC": 4, "CAT": 7, "chat": [6, 7, 4, 7, 6]},
+    "helium":                  {"F": 7, "VC": 5, "CAT": 7, "chat": [7, 7, 5, 7, 4]},
+    "hedera-hashgraph":        {"F": 6, "VC": 4, "CAT": 6, "chat": [6, 7, 4, 6, 6]},
+    "quant-network":           {"F": 8, "VC": 6, "CAT": 8, "chat": [8, 3, 6, 8, 6]},
+    "raydium":                 {"F": 7, "VC": 7, "CAT": 6, "chat": [7, 4, 7, 6, 4]},
+    "ethena":                  {"F": 7, "VC": 5, "CAT": 6, "chat": [7, 4, 5, 6, 5]},
+    "centrifuge":              {"F": 6, "VC": 4, "CAT": 7, "chat": [6, 8, 4, 7, 3]},
+    "fetch-ai":                {"F": 4, "VC": 3, "CAT": 5, "chat": [4, 6, 3, 5, 3]},
+    "pha":                     {"F": 5, "VC": 3, "CAT": 5, "chat": [5, 4, 3, 5, 2]}
+  },
+
+  "unlocks": [
+    {"sym": "HYPE", "date": "2026-10-06", "note": "~9.9M HYPE monthly unlock"}
+  ],
+
+  "markets": ["BTC", "ETH", "SOL"],
+
+  "thresholds": {
+    "funding_hot_8h_pct": 0.03,
+    "funding_neutral_8h_pct": 0.01,
+    "flush_oi_drop_pct": 10,
+    "buildup_oi_rise_pct": 15,
+    "chase_7d_pct": 20,
+    "whale_alert_usd": 2000000,
+    "whale_list_usd": 500000,
+    "unlock_window_days": 14,
+    "alert_cooldown_hours": 12
+  },
+
+  "exchange_wallets": {
+    "_note": "Ethereum hot wallets. Verify on etherscan.io (the label shows on the address page) and add more as you find them.",
+    "0x28c6c06298d514db089934071355e5743bf21d60": "Binance",
+    "0x21a31ee1afc51d94c2efccaa2092ad1028285549": "Binance",
+    "0xdfd5293d8e347dfe59e90efd55b2956a1343963d": "Binance",
+    "0x56eddb7aa87536c09ccc2793473599fd21a8b17f": "Binance",
+    "0xf977814e90da44bfa03b6295a0616a897441acec": "Binance",
+    "0x5a52e96bacdabb82fd05763e25335261b270efcb": "Binance",
+    "0x71660c4005ba85c37ccec55d0c4493e66fe775d3": "Coinbase",
+    "0x503828976d22510aad0201ac7ec88293211d23da": "Coinbase",
+    "0xddfabcdc4d8ffc6d5beaf154f18b778f892a0740": "Coinbase",
+    "0x3cd751e6b0078be393132286c442345e5dc49699": "Coinbase",
+    "0xb5d85cbf7cb3ee0d56b3bb207d5fc4b82f43f511": "Coinbase",
+    "0xa9d1e08c7793af67e9d92fe308d5697fb81d3e43": "Coinbase",
+    "0x6cc5f688a315f3dc28a7781717a9a798a59fda7b": "OKX",
+    "0x2910543af39aba0cd09dbb2d50200b3e800a63d2": "Kraken"
+  }
+}
