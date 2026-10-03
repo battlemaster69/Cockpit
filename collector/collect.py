@@ -48,7 +48,7 @@ ERRORS = {}
 CG_KEY = os.getenv("COINGECKO_API_KEY", "").strip()
 CG_HEADERS = {"x-cg-demo-api-key": CG_KEY} if CG_KEY else None
 CZ_KEY = os.getenv("COINALYZE_API_KEY", "").strip()
-BSC_RPCS = ["https://bsc-rpc.publicnode.com", "https://bsc.drpc.org"]
+BSC_RPCS = ["https://bsc-rpc.publicnode.com", "https://rpc-bsc.48.club"]  # free nodes that serve these log queries (Oct 2026)
 SOL_RPCS = ["https://api.mainnet-beta.solana.com", "https://solana-rpc.publicnode.com"]
 TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 WALLET_KEYS = {"eth": "exchange_wallets", "bsc": "exchange_wallets_bsc", "sol": "exchange_wallets_sol"}
@@ -141,19 +141,19 @@ def r2(v, d=4):
 
 def rpc(urls, method, params):
     """JSON-RPC call to a free public node, falling back to the next node on failure."""
-    last = None
+    errs = []
     for url in urls:
         try:
             d = get_json(url, method="POST", body={"jsonrpc": "2.0", "id": 1, "method": method, "params": params},
                          retries=1)
             if "error" in d:
-                raise RuntimeError(f"{method}: {(d['error'] or {}).get('message', d['error'])}")
+                raise RuntimeError(f"{(d['error'] or {}).get('message', d['error'])}")
             if d.get("result") is None:  # e.g. a load-balanced node a block behind: try the next node
-                raise RuntimeError(f"{method}: empty result")
+                raise RuntimeError("empty result")
             return d["result"]
         except Exception as e:  # noqa: BLE001
-            last = e
-    raise RuntimeError(str(last))
+            errs.append(f"{url.split('//')[-1].split('/')[0]}: {str(e)[:80]}")
+    raise RuntimeError(f"{method} failed on every node ({'; '.join(errs)})")
 
 
 _CZ_CALLS = []
@@ -514,7 +514,7 @@ def fetch_bsc_transfers(targets, prices, seen, history):
     head, t_head = int(latest["number"], 16), int(latest["timestamp"], 16)
     t_old = int(rpc(BSC_RPCS, "eth_getBlockByNumber", [hex(head - 20000), False])["timestamp"], 16)
     spb = max((t_head - t_old) / 20000, 0.05)  # seconds per block
-    new = []
+    new, errs = [], []
     for cid, track in targets.items():
         price = (prices.get(cid) or {}).get("price")
         sym = (prices.get(cid) or {}).get("sym") or cid.upper()
@@ -522,12 +522,14 @@ def fetch_bsc_transfers(targets, prices, seen, history):
             continue
         dec = int(track.get("dec") or 18)
         frm = max(cursors.get(cid, head - int(3600 / spb)) + 1, head - int(3 * 3600 / spb))
-        while frm <= head:
-            to = min(frm + 2999, head)
-            for topics in ([TRANSFER_TOPIC, None, wtopics], [TRANSFER_TOPIC, wtopics]):  # into, out of
-                logs = rpc(BSC_RPCS, "eth_getLogs", [{"fromBlock": hex(frm), "toBlock": hex(to),
-                                                      "address": track["addr"], "topics": topics}])
-                for lg in logs:
+        try:
+            while frm <= head:
+                to = min(frm + 2999, head)
+                found = []
+                for topics in ([TRANSFER_TOPIC, None, wtopics], [TRANSFER_TOPIC, wtopics]):  # into, out of
+                    found += rpc(BSC_RPCS, "eth_getLogs", [{"fromBlock": hex(frm), "toBlock": hex(to),
+                                                            "address": track["addr"], "topics": topics}])
+                for lg in found:
                     if len(lg.get("topics") or []) < 3:
                         continue
                     src, dst = "0x" + lg["topics"][1][-40:], "0x" + lg["topics"][2][-40:]
@@ -541,8 +543,12 @@ def fetch_bsc_transfers(targets, prices, seen, history):
                     ts = int(t_head - (head - int(lg["blockNumber"], 16)) * spb)
                     new.append(transfer_event(eid, ts, cid, sym, src, dst, wallets, amount, price,
                                               lg["transactionHash"], "bsc"))
-            frm = to + 1
-        cursors[cid] = head
+                cursors[cid] = to  # progress is saved chunk by chunk: a failure resumes here next run
+                frm = to + 1
+        except Exception as e:  # noqa: BLE001
+            errs.append(f"{sym}: {str(e)[:200]}")
+    if errs:  # keep what was found; the dashboard still shows the failure
+        ERRORS["BNB Chain (exchange flows)"] = "; ".join(errs)[:300]
     return new
 
 
