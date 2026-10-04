@@ -19,6 +19,7 @@ A personal crypto tracker. It runs on GitHub's servers (free, so your PC can sta
 | Leverage gauges, shortlist prices, OI, funding | Every hour | Hyperliquid 24 calls, CoinGecko 24 calls |
 | Positioning (L/S ratio, liquidations, OI, taker flow) | Every hour | Coinalyze about 100–150 calls per run, paced under its 40 a minute limit |
 | Shortlist exchange-wallet flows | Every hour | Etherscan about 14 calls per Ethereum token per run (100,000 a day allowed); free public BNB Chain and Solana nodes |
+| Levels: prices each liquid Binance coin has turned at 3+ times (daily candles), distance to the nearest, phone alert when a calm coin arrives at one | Rebuilt daily, re-measured hourly and every 15 min with the radar prices | Binance about 150 calls once a day (free, no key) |
 | Universe of 500 coins, financials, macro | Every 4 hours | CoinGecko about 20 calls, DefiLlama about 24, FRED 18, CoinMetrics 6 |
 
 CoinGecko works out to roughly 1,500 calls a month against a free limit of 10,000. GitHub Actions is free and unlimited for public repos.
