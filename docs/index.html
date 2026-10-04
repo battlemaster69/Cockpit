@@ -616,7 +616,9 @@ function levelRows() {
   return L.coins.map(x => { const p = (live && RADAR.px[x.id]) || x.price, dist = p / x.level - 1;
     const vw30 = x.vwap30 ? p / x.vwap30 - 1 : null, vww = x.vwapw ? p / x.vwapw - 1 : null, stp = (st.recent?.stretched_pct ?? 10) / 100;
     return { ...x, price: p, dist, room: x.resistance ? x.resistance / p - 1 : null,
-      sup_dist: x.sup ? p / x.sup - 1 : null, ceil_room: x.ceil ? x.ceil / p - 1 : null, vw30, vww,
+      // measured at Binance's price; a live price that has crossed one drops it rather than show a "ceiling" below
+      sup: x.sup && x.sup < p ? x.sup : null, ceil: x.ceil && x.ceil > p ? x.ceil : null,
+      sup_dist: x.sup && x.sup < p ? p / x.sup - 1 : null, ceil_room: x.ceil && x.ceil > p ? x.ceil / p - 1 : null, vw30, vww,
       stretched: (vw30 ?? -1) >= stp || (vww ?? -1) >= stp,
       at: (x.bounce_touches || 0) >= st.min_touches && (x.bounce_resolved_10d || 0) >= st.min_resolved && Math.abs(dist) <= st.at_level_pct / 100 }; });
 }
