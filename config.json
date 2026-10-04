@@ -49,6 +49,18 @@
     "loading_buyers_pct": 55
   },
 
+  "levels": {
+    "_note": "Swing levels on daily candles (the Stock Cockpit's swing.py), rebuilt once a day, re-measured hourly and with every radar scan. Backtested Oct 2026: at a level beat the market 54-58% of the time over 10 days, only in coins swinging under ~18% a week.",
+    "max_weekly_swing_pct": 18,
+    "at_level_pct": 4,
+    "min_touches": 3,
+    "min_resolved": 3,
+    "alerts": true,
+    "alert_cap": 6,
+    "cooldown_days": 21,
+    "track_days": 10
+  },
+
   "strength": {
     "_note": "Dip strength: after a market dip, which coins fought back harder than the market. Checked hourly over the last 48h.",
     "dip_min_pct": 2,

@@ -1126,9 +1126,132 @@ def radar_scan(universe, cache, rstate):
                                + ". Watch it hold above the old high. Right about 1 in 5 in testing: size small."})
     send_alerts(alerts, rstate)
     return {"generated_at": NOW.isoformat(timespec="seconds"), "scanned": len(info), "mkt3": r2(mkt3, 2), "calm": calm,
+            "px": {cid: x["price"] for cid, x in m.items()},  # every scanned price: the Levels tab re-measures with these
             "breakouts": hot, "warm": warm, "moved": [item(c, "moved") for c in moved], "flags": flags,
             "score": flag_summary(rstate["score"]), "alerts": rstate.get("recent", [])[:20],
             "settings": {"vol_x": vx, "move_min_pct": lo, "move_max_pct": hi, "calm_mkt_3h_pct": st.get("calm_mkt_3h_pct", 1.5)}}
+
+
+# ------------------------------------------------------------------ levels
+# The Stock Cockpit's swing levels (collector/swing.py, the Screener's code) on Binance daily candles: prices a coin
+# has turned at 3+ times in ~1.4 years and how far it sits from the nearest one. Backtested Oct 2026, point in time,
+# 134 coins, Nov 2024 - Sep 2026: within 4% of such a level a coin beat the market (median of all coins) over the
+# next 10 days 54% of the time vs 49% at random (21 days 55%), steady in every half-year. The edge sat in calmer
+# coins: with a weekly swing under 18% being at a level added 3-11 points over coins of the same swing away from
+# levels; above 18% nothing. More touches helped (5+: 58%); a level's own past hit rate did NOT predict the next
+# bounce. A relative edge: in a falling market these still fell, just less.
+
+def sig(v, n=5):
+    return None if v is None or not isinstance(v, (int, float)) or not math.isfinite(v) else float(f"{v:.{n}g}")
+
+
+def money(v):
+    return "–" if v is None else f"${v:,.0f}" if v >= 1000 else f"${v:,.2f}" if v >= 1 else f"${v:.4g}"
+
+
+LEVEL_FIELDS = ("swing_amplitude", "swing_chop", "swing_reversals", "bounce_touches", "bounce_resolved_10d",
+                "bounce_median_10d", "bounce_hit_rate_10d", "bounce_resolved_21d", "bounce_median_21d", "bounce_hit_rate_21d",
+                "bounce_last_touch", "resistance_touches", "clear_of_resistance")
+
+
+@module("Levels")
+def coin_levels(universe, cache):
+    """Once a UTC day, after Binance's daily candle closes: swing levels for the radar universe from up to 1,000
+    daily candles (one call per coin). Only coins with a level within 15% are kept."""
+    old = cache.get("levels") or {}
+    today = NOW.date().isoformat()
+    if old.get("day") == today and old.get("coins"):
+        return old
+    import pandas as pd  # only this hourly step needs pandas; the 15-minute radar scan stays light
+    import swing
+    coins, tried = {}, 0
+    for c in universe:
+        try:
+            k = get_json(f"{BINANCE}/klines", params={"symbol": c["bsym"], "interval": "1d", "limit": 1000}, retries=1)[:-1]  # today's candle is still open
+        except Exception:  # noqa: BLE001
+            continue
+        tried += 1
+        time.sleep(0.03)
+        if len(k) < swing.MIN_BARS:
+            continue
+        df = pd.DataFrame([(int(x[0]), float(x[2]), float(x[3]), float(x[4])) for x in k], columns=["t", "High", "Low", "Close"])
+        df.index = pd.to_datetime(df["t"], unit="ms")
+        df = df[["High", "Low", "Close"]]
+        try:
+            sw = swing.analyse(df, df["Close"])
+        except Exception:  # noqa: BLE001  one odd series must not cost the list
+            continue
+        if not sw.get("bounce_level") or sw.get("swing_amplitude") is None:
+            continue
+        coins[c["id"]] = {"id": c["id"], "sym": c["sym"], "name": c["name"], "rank": c["rank"], "close": sig(df["Close"].iloc[-1]),
+                          "level": sig(sw["bounce_level"]), "resistance": sig(sw.get("resistance_level")),
+                          **{f: (r2(sw[f], 4) if isinstance(sw.get(f), float) else sw.get(f)) for f in LEVEL_FIELDS},
+                          "spark": [sig(x, 4) for x in df["Close"].iloc[-60::2]]}
+    if tried < 30:
+        raise RuntimeError(f"daily candles for only {tried} coins")
+    cache["levels"] = {"day": today, "ts": NOW_TS, "checked": tried, "coins": coins}
+    return cache["levels"]
+
+
+def levels_view(lev, prices):
+    """Re-measure every level at the latest price; flag the ones within reach (`at`) and the calmer coins (`calm`)."""
+    st = CONFIG["levels"]
+    rows = []
+    for cid, x in (lev.get("coins") or {}).items():
+        p = prices.get(cid) or x["close"]
+        r = {**x, "price": sig(p), "dist": r2(p / x["level"] - 1, 4), "room": r2(x["resistance"] / p - 1, 4) if x.get("resistance") else None}
+        r["at"] = (x.get("bounce_touches") or 0) >= st["min_touches"] and (x.get("bounce_resolved_10d") or 0) >= st["min_resolved"] \
+            and abs(r["dist"]) <= st["at_level_pct"] / 100
+        r["calm"] = x["swing_amplitude"] < st["max_weekly_swing_pct"] / 100
+        rows.append(r)
+    return sorted(rows, key=lambda r: abs(r["dist"]))
+
+
+def level_arrivals(rows, prices, state, history):
+    """New coins on the calm at-a-level list: an alert (first run seeds silently; a coin can alert again after
+    `cooldown_days` off the list) and a flag scored against BTC after `track_days`, the live track record."""
+    st = CONFIG["levels"]
+    mem = state.setdefault("level_arrivals", {})
+    first = "seen" not in mem
+    seen = {k: v for k, v in (mem.get("seen") or {}).items() if NOW_TS - v < st["cooldown_days"] * 86400}
+    on = [r for r in rows if r["at"] and r["calm"]]
+    fresh = [r for r in on if r["id"] not in seen]
+    for r in on:
+        seen[r["id"]] = NOW_TS
+    mem["seen"] = seen
+    track = history.setdefault("levels_track", {"flags": [], "score": []})
+    btc = prices.get("bitcoin")
+    if not first:
+        for r in fresh:
+            track["flags"].append({"id": r["id"], "sym": r["sym"], "ts": NOW_TS, "price": r["price"], "btc": btc, "dist": r["dist"]})
+    keep = []
+    for f in track["flags"]:
+        age = NOW_TS - f["ts"]
+        if age >= st["track_days"] * 86400:
+            p = prices.get(f["id"])
+            if p and btc and f.get("btc"):
+                track["score"].append({"sym": f["sym"], "ts": f["ts"], "result": r2((p / f["price"] - 1) * 100, 2),
+                                       "vs_btc": r2(((p / f["price"]) - (btc / f["btc"])) * 100, 2)})
+                continue
+            if age < (st["track_days"] + 2) * 86400:  # price missing this hour: try again for two days
+                keep.append(f)
+            continue
+        keep.append(f)
+    track["flags"], track["score"] = keep, track["score"][-300:]
+    alerts = []
+    if fresh and not first and st.get("alerts", True):
+        cap = st.get("alert_cap", 6)
+        alerts.append({"key": f"levels:{NOW_TS}", "level": "good", "title": "At a level: " + ", ".join(r["sym"] for r in fresh[:cap]),
+                       "body": "\n".join(f'{r["sym"]} {money(r["price"])}, {abs(r["dist"]) * 100:.1f}% {"above" if r["dist"] >= 0 else "below"} '
+                                         f'{money(r["level"])} (turned {r["bounce_touches"]}x; swings {r["swing_amplitude"] * 100:.0f}%/wk'
+                                         + (f'; ceiling {money(r["resistance"])}, {r["room"] * 100:+.0f}%' if r.get("room") is not None else "") + ")"
+                                         for r in fresh[:cap]) + (f"\n...and {len(fresh) - cap} more" if len(fresh) > cap else "")
+                               + "\nA level is a place to look: in testing these beat the market about 55-60% of the time over 10 days."})
+    sc = track["score"]
+    summary = {"n": len(sc), "beat": sum(1 for x in sc if x["vs_btc"] > 0),
+               "median_vs_btc": r2(statistics.median(x["vs_btc"] for x in sc), 2) if sc else None,
+               "open": len(track["flags"])}
+    return alerts, summary
 
 
 def radar_main():
@@ -1616,6 +1739,16 @@ def main():
             del s_hist[cid]
 
     alerts = collect_alerts(markets, shortlist_out, events, cache.get("mvrv"), state, strength)
+    # -------- levels: rebuilt once a day from daily candles, re-measured every hour at the latest price
+    lev = (coin_levels(radar_u, cache) if radar_u else None) or cache.get("levels") or {}
+    prices = {r["id"]: r["price"] for r in rows_all or [] if r.get("price")}
+    levels = None
+    if lev.get("coins"):
+        lrows = levels_view(lev, prices)
+        lv_alerts, track = level_arrivals(lrows, prices, state, history)
+        alerts += lv_alerts
+        levels = {"day": lev["day"], "built_at": datetime.fromtimestamp(lev["ts"], timezone.utc).isoformat(timespec="seconds"),
+                  "checked": lev.get("checked"), "settings": CONFIG["levels"], "track": track, "coins": lrows}
     send_alerts(alerts, state)
 
     out = {
@@ -1632,6 +1765,7 @@ def main():
         "wallet_counts": {c: len(wallet_map(c)) for c in WALLET_KEYS},
         "strength": strength,
         "loading": loading,
+        "levels": levels,
         "alerts": state.get("recent", []),
         "errors": ERRORS,
         "thresholds": TH,

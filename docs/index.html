@@ -266,7 +266,7 @@ function spark(values, color = "var(--ink)", h = 42) {
 let DATA = null, UNI = null, RADAR = null, BYID = new Map();
 let SHORT = new Set();
 let current = (location.hash.slice(1) || "shortlist").split("/")[0];
-const ui = { q: "", sort: "total", filter: "all", shown: 40 };
+const ui = { q: "", sort: "total", filter: "all", shown: 40, lsort: "dist" };
 const store = {
   get(k, d = null) { try { return JSON.parse(localStorage.getItem("cockpit:" + k)) ?? d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem("cockpit:" + k, JSON.stringify(v)); } catch {} },
@@ -608,7 +608,47 @@ function renderRadar() {
     ${(L?.flags || []).length ? `<p class="hint">Loading flags in the last day: ${L.flags.map(f => `${esc(f.sym)} ${pct(f.since)} (${f.status})`).join(", ")}.</p>` : ""}
     ${L?.score?.loading ? `<p class="hint">${trackLine(L.score, "loading", "Track record, loading")}</p>` : ""}`;
 }
-const TABS = [["shortlist", "Shortlist", renderShortlist], ["strength", "Strength", renderStrength], ["radar", "Radar", renderRadar], ["universe", "Universe", renderUniverse], ["value", "Value", renderValue],
+/* ================= levels: the Stock Cockpit's swing levels on daily candles ================= */
+// re-measured with the 15-minute radar prices when those are newer than the hourly run
+function levelRows() {
+  const L = DATA.levels; if (!L) return [];
+  const live = RADAR?.px && new Date(RADAR.generated_at) > new Date(DATA.generated_at), st = L.settings;
+  return L.coins.map(x => { const p = (live && RADAR.px[x.id]) || x.price, dist = p / x.level - 1;
+    return { ...x, price: p, dist, room: x.resistance ? x.resistance / p - 1 : null,
+      at: (x.bounce_touches || 0) >= st.min_touches && (x.bounce_resolved_10d || 0) >= st.min_resolved && Math.abs(dist) <= st.at_level_pct / 100 }; });
+}
+const LSORTS = [["dist", "Closest to level", x => Math.abs(x.dist), 1], ["touches", "Most touches", x => x.bounce_touches, -1], ["calm", "Calmest first", x => x.swing_amplitude, 1],
+  ["room", "Most room to ceiling", x => x.room ?? (x.clear_of_resistance ? 9 : null), -1], ["rank", "Market cap rank", x => x.rank, 1]];
+function sortLevels(list) { const o = LSORTS.find(s => s[0] === ui.lsort) || LSORTS[0];
+  return list.map((x, i) => [x, o[2](x), i]).sort((a, b) => a[1] == null ? 1 : b[1] == null ? -1 : (a[1] - b[1]) * o[3] || a[2] - b[2]).map(a => a[0]); }
+const p100 = (v, d = 1) => v == null ? "–" : pct(v * 100, d);
+function levelSub(x) {
+  return `Level ${price(x.level)}, turned ${x.bounce_touches}× · swings ${(x.swing_amplitude * 100).toFixed(0)}% a week`
+    + (x.resistance ? ` · ceiling ${price(x.resistance)} (${p100(x.room, 0)} room)` : x.clear_of_resistance ? " · clear of every ceiling" : "")
+    + (x.bounce_resolved_10d ? ` · past touches: 2-wk median ${p100(x.bounce_median_10d)}, ${Math.round((x.bounce_hit_rate_10d || 0) * 100)}% up (${x.bounce_resolved_10d})` : "");
+}
+const levelRow = x => strengthRow({ ...x, before: null }, x.dist * 100, x.dist >= 0 ? "above level" : "below level", levelSub(x),
+  x.bounce_touches >= 5 ? `<span class="tag good">${x.bounce_touches} touches</span>` : "");
+function renderLevels() {
+  const L = DATA.levels;
+  if (!L) return `<p class="empty">Levels haven't been built yet. They come with the next hourly run.</p>`;
+  const st = L.settings, all = levelRows(), at = sortLevels(all.filter(x => x.at)), calm = at.filter(x => x.swing_amplitude < st.max_weekly_swing_pct / 100), wild = at.filter(x => x.swing_amplitude >= st.max_weekly_swing_pct / 100);
+  const near = sortLevels(all.filter(x => !x.at && Math.abs(x.dist) <= .10 && x.swing_amplitude < st.max_weekly_swing_pct / 100));
+  const live = RADAR?.px && new Date(RADAR.generated_at) > new Date(DATA.generated_at), tr = L.track || {};
+  return `<p class="hint" style="margin-top:14px"><b>Coins at a price they've turned at before</b>: the Stock Cockpit's levels, on Binance daily candles for the ${L.checked ?? ""} liquid coins the Radar watches. A level is a price where the coin made a swing low (the lowest point for 5 days either side) 3+ times in the last ~1.4 years. Levels rebuilt ${when(L.built_at)}; distances ${live ? `re-measured ${when(RADAR.generated_at)} (every 15 minutes)` : "measured at the hourly run"}. Big number: distance from the level (negative = just under it).</p>
+    <details class="panel" style="padding:12px 14px"><summary style="cursor:pointer"><b>What testing showed</b></summary>
+      <p class="hint" style="margin:8px 0">Two years of history, 134 coins, checked as if live: within 4% of a level turned at 3+ times, a coin beat the market (the median coin) over the next 10 days <b>54%</b> of the time, against 49% at a random moment, and it held in every half-year. With <b>5+ touches: 58%</b>. The edge was all in calmer coins: under ${st.max_weekly_swing_pct}% a week being at a level added 3–11 points; wilder coins at levels did no better than anywhere else, so they're listed apart.</p>
+      <p class="hint" style="margin:8px 0">A level's own past record (the "2-wk median, % up" on each row) did <b>not</b> predict the next bounce, so read the touch count, not that median. It's a relative edge: in the falling market tested, these still fell, just less. A daily close well below the level is the stop most traders use.</p></details>
+    <div class="toolbar" style="grid-template-columns:1fr"><select class="sort" id="lsort" aria-label="Sort by">${LSORTS.map(([v, l]) => `<option value="${v}" ${ui.lsort === v ? "selected" : ""}>Sort: ${l}</option>`).join("")}</select></div>
+    <h2>At a level now <span class="sub">${calm.length}</span></h2>
+    <p class="hint">Within ${st.at_level_pct}% of a level with ${st.min_touches}+ touches and swinging under ${st.max_weekly_swing_pct}% a week. New arrivals send a phone alert (checked hourly; a coin can alert again after ${st.cooldown_days} days off the list).</p>
+    ${calm.map(levelRow).join("") || `<p class="empty" style="padding:14px">No calm coin at a level right now.</p>`}
+    <p class="hint">${tr.n ? `Live track record: ${tr.n} arrivals scored after ${st.track_days} days, ${tr.beat} beat BTC (median ${pct(tr.median_vs_btc)} vs BTC)${tr.open ? `; ${tr.open} still open` : ""}.` : `Live track record: each new arrival is scored against BTC after ${st.track_days} days${tr.open ? ` (${tr.open} open so far)` : ""}; results build up here.`}</p>
+    ${wild.length ? `<details class="panel" style="padding:10px 14px"><summary class="sub" style="cursor:pointer">${wild.length} wilder coin${wild.length > 1 ? "s" : ""} at a level (swing ${st.max_weekly_swing_pct}%+ a week: no edge in testing)</summary><div style="margin-top:10px">${wild.map(levelRow).join("")}</div></details>` : ""}
+    ${near.length ? `<details class="panel" style="padding:10px 14px"><summary class="sub" style="cursor:pointer">${near.length} calm coin${near.length > 1 ? "s" : ""} approaching a level (within 10%, or not enough touches yet)</summary><div style="margin-top:10px">${near.map(levelRow).join("")}</div></details>` : ""}`;
+}
+
+const TABS = [["shortlist", "Shortlist", renderShortlist], ["strength", "Strength", renderStrength], ["radar", "Radar", renderRadar], ["levels", "Levels", renderLevels], ["universe", "Universe", renderUniverse], ["value", "Value", renderValue],
   ["flows", "Flows", renderFlows], ["macro", "Macro", renderMacro], ["alerts", "Alerts", renderAlerts]];
 
 /* ================= coin detail sheet ================= */
@@ -701,6 +741,13 @@ function detail(c) {
         <div><span>Last 24h</span><b>${fl ? `In ${usd(fl.in_24h)}, out ${usd(fl.out_24h)}` : "–"}</b></div></div>
         <p class="hint">Transfers into and out of ${DATA.wallet_counts?.[tr.chain] ?? "known"} exchange wallets on ${CHAIN[tr.chain]}.</p>`}
 
+      ${(() => { const x = DATA.levels ? levelRows().find(l => l.id === c.id) : null; if (!x) return "";
+        return `<h3>Levels</h3><div class="stats">
+          <div><span>Nearest level</span><b>${price(x.level)} (turned ${x.bounce_touches}×)</b></div><div><span>Distance</span><b>${p100(x.dist)}</b></div>
+          <div><span>Ceiling overhead</span><b>${x.resistance ? `${price(x.resistance)} (${p100(x.room, 0)})` : x.clear_of_resistance ? "clear of all" : "–"}</b></div>
+          <div><span>Typical weekly swing</span><b class="${x.swing_amplitude >= DATA.levels.settings.max_weekly_swing_pct / 100 ? "meh" : ""}">${(x.swing_amplitude * 100).toFixed(1)}%</b></div>
+          <div><span>2 weeks after past touches</span><b>${x.bounce_resolved_10d ? `${p100(x.bounce_median_10d)} median, ${Math.round(x.bounce_hit_rate_10d * 100)}% up (${x.bounce_resolved_10d})` : "–"}</b></div>
+          <div><span>Last touch</span><b>${esc(x.bounce_last_touch || "–")}</b></div></div>`; })()}
       <div class="links" style="margin-top:18px">
         <a href="https://www.coingecko.com/en/coins/${esc(c.id)}" target="_blank" rel="noopener">CoinGecko</a>
         <a href="https://tokenomist.ai/search?q=${encodeURIComponent(c.sym)}" target="_blank" rel="noopener">Unlocks</a>
@@ -803,6 +850,7 @@ document.addEventListener("input", e => {
 });
 document.addEventListener("change", e => {
   if (e.target.id === "sort") { ui.sort = e.target.value; ui.shown = 40; refreshUniverseRows(); }
+  if (e.target.id === "lsort") { ui.lsort = e.target.value; const s = $("#tab-levels"); if (s) s.innerHTML = renderLevels(); }
 });
 window.addEventListener("popstate", () => closeSheet(true));
 
