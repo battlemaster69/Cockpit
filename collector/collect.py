@@ -1193,13 +1193,88 @@ def coin_levels(universe, cache):
     return cache["levels"]
 
 
-def levels_view(lev, prices):
+# Recent context, shown next to the major levels, not used to pick coins (owner asked for 30-day swing levels and
+# VWAP; tested Oct 2026 on 18 months of hourly candles, 146 coins, every 12h, vs the median coin): swing levels from
+# 4h candles over 30-180 days beat the market only 51-53% over 3-10 days (vs 50%), and a third to half of all coins
+# sit at one at any moment; a pullback to the 30-day, weekly or 30-day-low-anchored VWAP did nothing either. What did
+# test: 10%+ above the 30-day or weekly VWAP lagged the market (45-47% over 1-5 days), hence the "stretched" tag.
+
+def _pivots(vals, w, lows=True, gap=2):
+    found = [i for i in range(w, len(vals) - w)
+             if (vals[i] <= min(vals[i - w:i + w + 1]) if lows else vals[i] >= max(vals[i - w:i + w + 1]))]
+    keep, run = [], []
+    pick = (lambda r: min(r, key=lambda j: vals[j])) if lows else (lambda r: max(r, key=lambda j: vals[j]))
+    for i in found:  # adjacent qualifying bars are one visit, as in swing.py
+        if run and i - run[-1] > gap:
+            keep.append(pick(run))
+            run = []
+        run.append(i)
+    if run:
+        keep.append(pick(run))
+    return keep
+
+
+def _clusters(prices, tol=0.02):
+    out, bucket = [], []
+    for p in sorted(prices):
+        if bucket and p > bucket[0] * (1 + tol):
+            out.append((statistics.median(bucket), len(bucket)))
+            bucket = []
+        bucket.append(p)
+    if bucket:
+        out.append((statistics.median(bucket), len(bucket)))
+    return out
+
+
+@module("Recent levels and VWAP")
+def recent_context(coins):
+    """For the coins on the Levels tab: the nearest support and ceiling from the last 30 days of 4h candles (a turn
+    with 12h either side, 2+ touches), the 30-day VWAP and this week's VWAP (from Monday 00:00 UTC), from one call of
+    hourly candles per coin. VWAP = traded dollars / traded coins, which Binance gives per candle."""
+    st = CONFIG["levels"].get("recent", {})
+    days, w, need = st.get("days", 30), st.get("pivot_hours", 12) // 4, st.get("min_touches", 2)
+    week0 = int((NOW - timedelta(days=NOW.weekday())).replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
+    out = {}
+    for c in coins:
+        try:
+            k = get_json(f"{BINANCE}/klines", params={"symbol": c["bsym"], "interval": "1h", "limit": days * 24}, retries=1)
+        except Exception:  # noqa: BLE001
+            continue
+        time.sleep(0.03)
+        if len(k) < days * 12:
+            continue
+        rows = [(int(x[0]) // 1000, float(x[2]), float(x[3]), float(x[4]), float(x[5]), float(x[7])) for x in k]
+        bars = {}
+        for t, h, l, cl, v, qv in rows:  # 4h candles on the UTC grid
+            b = bars.setdefault(t // 14400, [h, l, cl])
+            b[0], b[1], b[2] = max(b[0], h), min(b[1], l), cl
+        b4 = [bars[key] for key in sorted(bars)]
+        p = rows[-1][3]
+        hi, lo = [b[0] for b in b4], [b[1] for b in b4]
+        sup = [x for x in _clusters([lo[i] for i in _pivots(lo, w, True)]) if x[1] >= need and x[0] < p]
+        ceil = [x for x in _clusters([hi[i] for i in _pivots(hi, w, False)]) if x[1] >= need and x[0] > p]
+        v30, q30 = sum(r[4] for r in rows), sum(r[5] for r in rows)
+        wk = [r for r in rows if r[0] >= week0]
+        vw, qw = sum(r[4] for r in wk), sum(r[5] for r in wk)
+        s, ce = (max(sup) if sup else None), (min(ceil) if ceil else None)
+        out[c["id"]] = {"sup": sig(s[0]) if s else None, "sup_n": s[1] if s else None,
+                        "ceil": sig(ce[0]) if ce else None, "ceil_n": ce[1] if ce else None,
+                        "vwap30": sig(q30 / v30) if v30 else None, "vwapw": sig(qw / vw) if vw else None, "vwapw_hours": len(wk)}
+    if coins and not out:
+        raise RuntimeError("no hourly candles")
+    return out
+
+
+def levels_view(lev, prices, recent=None):
     """Re-measure every level at the latest price; flag the ones within reach (`at`) and the calmer coins (`calm`)."""
     st = CONFIG["levels"]
     rows = []
     for cid, x in (lev.get("coins") or {}).items():
         p = prices.get(cid) or x["close"]
-        r = {**x, "price": sig(p), "dist": r2(p / x["level"] - 1, 4), "room": r2(x["resistance"] / p - 1, 4) if x.get("resistance") else None}
+        r = {**x, **((recent or {}).get(cid) or {}), "price": sig(p), "dist": r2(p / x["level"] - 1, 4),
+             "room": r2(x["resistance"] / p - 1, 4) if x.get("resistance") else None}
+        vw = [r[k] for k in ("vwap30", "vwapw") if r.get(k)]
+        r["stretched"] = any(p / v - 1 >= st.get("recent", {}).get("stretched_pct", 10) / 100 for v in vw)
         r["at"] = (x.get("bounce_touches") or 0) >= st["min_touches"] and (x.get("bounce_resolved_10d") or 0) >= st["min_resolved"] \
             and abs(r["dist"]) <= st["at_level_pct"] / 100
         r["calm"] = x["swing_amplitude"] < st["max_weekly_swing_pct"] / 100
@@ -1244,7 +1319,8 @@ def level_arrivals(rows, prices, state, history):
         alerts.append({"key": f"levels:{NOW_TS}", "level": "good", "title": "At a level: " + ", ".join(r["sym"] for r in fresh[:cap]),
                        "body": "\n".join(f'{r["sym"]} {money(r["price"])}, {abs(r["dist"]) * 100:.1f}% {"above" if r["dist"] >= 0 else "below"} '
                                          f'{money(r["level"])} (turned {r["bounce_touches"]}x; swings {r["swing_amplitude"] * 100:.0f}%/wk'
-                                         + (f'; ceiling {money(r["resistance"])}, {r["room"] * 100:+.0f}%' if r.get("room") is not None else "") + ")"
+                                         + (f'; ceiling {money(r["resistance"])}, {r["room"] * 100:+.0f}%' if r.get("room") is not None else "")
+                                         + (f'; 30d VWAP {money(r["vwap30"])}' if r.get("vwap30") else "") + ")"
                                          for r in fresh[:cap]) + (f"\n...and {len(fresh) - cap} more" if len(fresh) > cap else "")
                                + "\nA level is a place to look: in testing these beat the market about 55-60% of the time over 10 days."})
     sc = track["score"]
@@ -1744,7 +1820,9 @@ def main():
     prices = {r["id"]: r["price"] for r in rows_all or [] if r.get("price")}
     levels = None
     if lev.get("coins"):
-        lrows = levels_view(lev, prices)
+        bsym = {c["id"]: c["bsym"] for c in radar_u}
+        recent = recent_context([{"id": cid, "bsym": bsym[cid]} for cid in lev["coins"] if cid in bsym]) or {}
+        lrows = levels_view(lev, prices, recent)
         lv_alerts, track = level_arrivals(lrows, prices, state, history)
         alerts += lv_alerts
         levels = {"day": lev["day"], "built_at": datetime.fromtimestamp(lev["ts"], timezone.utc).isoformat(timespec="seconds"),

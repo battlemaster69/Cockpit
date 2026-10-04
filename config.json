@@ -58,7 +58,14 @@
     "alerts": true,
     "alert_cap": 6,
     "cooldown_days": 21,
-    "track_days": 10
+    "track_days": 10,
+    "recent": {
+      "_note": "Context on each row, not used to pick coins: 30-day swing support/ceiling from 4h candles and the 30-day and weekly VWAP. Tested Oct 2026: recent levels and VWAP pullbacks showed no edge; 10%+ above VWAP lagged (the 'stretched' tag).",
+      "days": 30,
+      "pivot_hours": 12,
+      "min_touches": 2,
+      "stretched_pct": 10
+    }
   },
 
   "strength": {

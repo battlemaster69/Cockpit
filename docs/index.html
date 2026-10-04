@@ -614,8 +614,19 @@ function levelRows() {
   const L = DATA.levels; if (!L) return [];
   const live = RADAR?.px && new Date(RADAR.generated_at) > new Date(DATA.generated_at), st = L.settings;
   return L.coins.map(x => { const p = (live && RADAR.px[x.id]) || x.price, dist = p / x.level - 1;
+    const vw30 = x.vwap30 ? p / x.vwap30 - 1 : null, vww = x.vwapw ? p / x.vwapw - 1 : null, stp = (st.recent?.stretched_pct ?? 10) / 100;
     return { ...x, price: p, dist, room: x.resistance ? x.resistance / p - 1 : null,
+      sup_dist: x.sup ? p / x.sup - 1 : null, ceil_room: x.ceil ? x.ceil / p - 1 : null, vw30, vww,
+      stretched: (vw30 ?? -1) >= stp || (vww ?? -1) >= stp,
       at: (x.bounce_touches || 0) >= st.min_touches && (x.bounce_resolved_10d || 0) >= st.min_resolved && Math.abs(dist) <= st.at_level_pct / 100 }; });
+}
+// recent context: 30-day swing support/ceiling (4h candles) and VWAP. Shown, not used to pick coins (no edge in testing)
+function recentSub(x) {
+  const bits = [];
+  if (x.sup) bits.push(`support ${price(x.sup)} (${x.sup_n}×, ${p100(x.sup_dist)})`); else if (x.vwap30) bits.push("no 30-day support below");
+  if (x.ceil) bits.push(`ceiling ${price(x.ceil)} (${p100(x.ceil_room, 0)})`);
+  if (x.vw30 != null) bits.push(`VWAP 30d ${p100(x.vw30)}${x.vww != null ? `, week ${p100(x.vww)}` : ""}`);
+  return bits.length ? `<br>Last 30 days: ${bits.join(" · ")}` : "";
 }
 const LSORTS = [["dist", "Closest to level", x => Math.abs(x.dist), 1], ["touches", "Most touches", x => x.bounce_touches, -1], ["calm", "Calmest first", x => x.swing_amplitude, 1],
   ["room", "Most room to ceiling", x => x.room ?? (x.clear_of_resistance ? 9 : null), -1], ["rank", "Market cap rank", x => x.rank, 1]];
@@ -625,10 +636,12 @@ const p100 = (v, d = 1) => v == null ? "–" : pct(v * 100, d);
 function levelSub(x) {
   return `Level ${price(x.level)}, turned ${x.bounce_touches}× · swings ${(x.swing_amplitude * 100).toFixed(0)}% a week`
     + (x.resistance ? ` · ceiling ${price(x.resistance)} (${p100(x.room, 0)} room)` : x.clear_of_resistance ? " · clear of every ceiling" : "")
-    + (x.bounce_resolved_10d ? ` · past touches: 2-wk median ${p100(x.bounce_median_10d)}, ${Math.round((x.bounce_hit_rate_10d || 0) * 100)}% up (${x.bounce_resolved_10d})` : "");
+    + (x.bounce_resolved_10d ? ` · past touches: 2-wk median ${p100(x.bounce_median_10d)}, ${Math.round((x.bounce_hit_rate_10d || 0) * 100)}% up (${x.bounce_resolved_10d})` : "")
+    + recentSub(x);
 }
 const levelRow = x => strengthRow({ ...x, before: null }, x.dist * 100, x.dist >= 0 ? "above level" : "below level", levelSub(x),
-  x.bounce_touches >= 5 ? `<span class="tag good">${x.bounce_touches} touches</span>` : "");
+  (x.bounce_touches >= 5 ? `<span class="tag good">${x.bounce_touches} touches</span>` : "")
+  + (x.stretched ? `<span class="tag bad" title="10%+ above its 30-day or weekly VWAP">stretched</span>` : ""));
 function renderLevels() {
   const L = DATA.levels;
   if (!L) return `<p class="empty">Levels haven't been built yet. They come with the next hourly run.</p>`;
@@ -638,7 +651,8 @@ function renderLevels() {
   return `<p class="hint" style="margin-top:14px"><b>Coins at a price they've turned at before</b>: the Stock Cockpit's levels, on Binance daily candles for the ${L.checked ?? ""} liquid coins the Radar watches. A level is a price where the coin made a swing low (the lowest point for 5 days either side) 3+ times in the last ~1.4 years. Levels rebuilt ${when(L.built_at)}; distances ${live ? `re-measured ${when(RADAR.generated_at)} (every 15 minutes)` : "measured at the hourly run"}. Big number: distance from the level (negative = just under it).</p>
     <details class="panel" style="padding:12px 14px"><summary style="cursor:pointer"><b>What testing showed</b></summary>
       <p class="hint" style="margin:8px 0">Two years of history, 134 coins, checked as if live: within 4% of a level turned at 3+ times, a coin beat the market (the median coin) over the next 10 days <b>54%</b> of the time, against 49% at a random moment, and it held in every half-year. With <b>5+ touches: 58%</b>. The edge was all in calmer coins: under ${st.max_weekly_swing_pct}% a week being at a level added 3–11 points; wilder coins at levels did no better than anywhere else, so they're listed apart.</p>
-      <p class="hint" style="margin:8px 0">A level's own past record (the "2-wk median, % up" on each row) did <b>not</b> predict the next bounce, so read the touch count, not that median. It's a relative edge: in the falling market tested, these still fell, just less. A daily close well below the level is the stop most traders use.</p></details>
+      <p class="hint" style="margin:8px 0">A level's own past record (the "2-wk median, % up" on each row) did <b>not</b> predict the next bounce, so read the touch count, not that median. It's a relative edge: in the falling market tested, these still fell, just less. A daily close well below the level is the stop most traders use.</p>
+      <p class="hint" style="margin:8px 0"><b>The "last 30 days" line</b> on each row: the nearest support and ceiling a coin has turned at 2+ times in the last month (4-hour candles, a turn = lowest/highest point for 12 hours either side), and where the price sits against its 30-day VWAP (average traded price) and this week's VWAP (from Monday). Shown for planning entries and stops, not to pick coins: tested on 18 months of hourly data, recent swing levels (30 to 180 days) beat the market only 51–53% of the time, and a pullback to VWAP did nothing. One VWAP reading did test: <span class="tag bad">stretched</span> = 10%+ above the 30-day or weekly VWAP, and those lagged the market (beat it only 45–47% over the next 1–5 days). Don't chase those.</p></details>
     <div class="toolbar" style="grid-template-columns:1fr"><select class="sort" id="lsort" aria-label="Sort by">${LSORTS.map(([v, l]) => `<option value="${v}" ${ui.lsort === v ? "selected" : ""}>Sort: ${l}</option>`).join("")}</select></div>
     <h2>At a level now <span class="sub">${calm.length}</span></h2>
     <p class="hint">Within ${st.at_level_pct}% of a level with ${st.min_touches}+ touches and swinging under ${st.max_weekly_swing_pct}% a week. New arrivals send a phone alert (checked hourly; a coin can alert again after ${st.cooldown_days} days off the list).</p>
@@ -747,7 +761,12 @@ function detail(c) {
           <div><span>Ceiling overhead</span><b>${x.resistance ? `${price(x.resistance)} (${p100(x.room, 0)})` : x.clear_of_resistance ? "clear of all" : "–"}</b></div>
           <div><span>Typical weekly swing</span><b class="${x.swing_amplitude >= DATA.levels.settings.max_weekly_swing_pct / 100 ? "meh" : ""}">${(x.swing_amplitude * 100).toFixed(1)}%</b></div>
           <div><span>2 weeks after past touches</span><b>${x.bounce_resolved_10d ? `${p100(x.bounce_median_10d)} median, ${Math.round(x.bounce_hit_rate_10d * 100)}% up (${x.bounce_resolved_10d})` : "–"}</b></div>
-          <div><span>Last touch</span><b>${esc(x.bounce_last_touch || "–")}</b></div></div>`; })()}
+          <div><span>Last touch</span><b>${esc(x.bounce_last_touch || "–")}</b></div>
+          <div><span>30-day support</span><b>${x.sup ? `${price(x.sup)} (${x.sup_n}×, ${p100(x.sup_dist)})` : "–"}</b></div>
+          <div><span>30-day ceiling</span><b>${x.ceil ? `${price(x.ceil)} (${x.ceil_n}×, ${p100(x.ceil_room, 0)})` : "–"}</b></div>
+          <div><span>vs 30-day VWAP</span><b class="${(x.vw30 ?? 0) >= .1 ? "bad" : ""}">${x.vwap30 ? `${p100(x.vw30)} (${price(x.vwap30)})` : "–"}</b></div>
+          <div><span>vs this week's VWAP</span><b class="${(x.vww ?? 0) >= .1 ? "bad" : ""}">${x.vwapw ? `${p100(x.vww)} (${price(x.vwapw)})` : "–"}</b></div></div>
+          ${x.stretched ? `<p class="hint"><span class="tag bad">stretched</span> 10%+ above VWAP: in testing these lagged the market over the next few days.</p>` : ""}`; })()}
       <div class="links" style="margin-top:18px">
         <a href="https://www.coingecko.com/en/coins/${esc(c.id)}" target="_blank" rel="noopener">CoinGecko</a>
         <a href="https://tokenomist.ai/search?q=${encodeURIComponent(c.sym)}" target="_blank" rel="noopener">Unlocks</a>
