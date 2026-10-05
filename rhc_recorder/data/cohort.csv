@@ -1,0 +1,5 @@
+token_address,symbol,cohort,assigned_utc,age_days_at_assign,price_at_assign,liquidity_at_assign,matched_passer,peak_source,mechanism
+0xcdae63d95d6dd4f89f6e508c77bd4388b4e5c8ab,HIVE,passer,2026-10-05T10:23:09Z,6.8,0.0005575,72079,,candles,
+0xba1a2d9783ebe2b76493c5c12eb9813a0e062843,SI,control,2026-10-05T10:23:09Z,2.74,1.332e-05,9322,0xcdae63d95d6dd4f89f6e508c77bd4388b4e5c8ab,candles,
+0x6a6a57d1e94eb586c5b505a1c81434bda3d6ed97,BABY,passer,2026-10-05T10:23:09Z,4.86,0.02218,2223386,,candles,
+0x0b7c6c138dc75622f4200d157b13fb93e6bd94fa,MOW,passer,2026-10-05T10:23:09Z,2.77,0.1176,11760645,,candles,

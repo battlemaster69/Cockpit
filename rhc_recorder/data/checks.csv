@@ -1,0 +1,3 @@
+token_address,checked_utc,src_verified,has_mint,has_owner,can_pause,can_blacklist,can_set_fee,is_proxy,holders,top20_pct,launchpad,seed_overlap,overlap_flag,checks_note
+0xcdae63d95d6dd4f89f6e508c77bd4388b4e5c8ab,2026-10-05T10:23:09Z,,False,False,False,False,False,False,758,13.15,uniswap-v4-robinhood,15,True,
+0xba1a2d9783ebe2b76493c5c12eb9813a0e062843,2026-10-05T10:23:09Z,,False,False,False,False,False,False,,,uniswap-v3-robinhood,,,too_many_transfers
