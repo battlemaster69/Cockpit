@@ -1,4 +1,4 @@
-# Robinhood Chain survivor recorder: every threshold lives here, not in code.
+﻿# Robinhood Chain survivor recorder: every threshold lives here, not in code.
 # Filters LABEL tokens; they never decide what gets recorded (the spec's "record everything" rule).
 
 chain:
@@ -46,8 +46,8 @@ checks:
 
 net:
   # GeckoTerminal answered HTTP 429 after ~9 calls a minute on 2026-10-05: 12 s apart, and a 429 waits 30 s, then 60 s
-  # the RPC node answered HTTP 429 after ~60-90 calls in a minute or so: one a second
-  min_gap_s: {geckoterminal: 12, dexscreener: 0.5, rpc: 1.0}
+  # the RPC node answered HTTP 429 after ~60-90 quick calls, sooner from GitHub's runners: 1.5 s apart
+  min_gap_s: {geckoterminal: 12, dexscreener: 0.5, rpc: 1.5}
   max_calls_per_run: {geckoterminal: 25, dexscreener: 300, rpc: 500}
   max_retries: 3
   backoff_s: [5, 15, 45]
