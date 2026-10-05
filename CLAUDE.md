@@ -33,6 +33,14 @@ Not financial advice tooling: it informs decisions, it never trades.
 - `data/history.json`, `data/state.json`, `data/cache.json`: the tool's own history (OI, dominance, transfers), alert dedupe state, and cached universe and contract lookups.
 - `config.json`: universe size and cadence, exclusions, manual score `overrides` (keyed by CoinGecko id), `unlocks`, `thresholds`, `exchange_wallets` (Ethereum), `exchange_wallets_bsc`, `exchange_wallets_sol`. Wallets come from Dune's spellbook CEX labels (`cex_evms_addresses.sql`, `cex_solana_addresses.sql`) and were checked for on-chain activity; BscScan and Solscan sit behind Cloudflare checks, so verify through Dune rather than the explorers.
 
+## Robinhood Chain survivor recorder (`rhc_recorder/`, Oct 2026)
+Separate module with its own workflow (`rhc_recorder.yml`, hourly :37, cron-job.org dispatch with `auto=true`), no shared code or keys with the trackers. Spec: the owner's "Robinhood Chain Survivor Recorder — Spec" Claude Docs doc (claude.ai/artifact/VV7EkNReprTEPAG33fi2to), updated 2026-10-05 with everything below. A recorder, not a trader: records every token reaching $5k liquidity, labels the 6 survivor filters (`config.yaml`), passers + one random matched control each, RPC checks on both; evaluate after ~3 weeks (passers vs controls, 3/7/14d).
+- Discovery: GeckoTerminal `new_pools` (network `robinhood`), ~4,400 new pools/day (half Pons launchpad), only the newest ~200 listed, hence hourly. DexScreener (`robinhood`, `/tokens/v1/` 30 per call) for prices; it cannot list a chain's pools.
+- Blockscout API is behind a Cloudflare bot check (403); checks use the official RPC `rpc.mainnet.chain.robinhood.com` (getLogs ≤10,000 results and ≤10M blocks per query, batches OK). publicnode needs a token for logs; drpc caps 10k-block ranges.
+- Rate limits hit while building: GeckoTerminal ~9 calls/min (12 s gap), RPC ~1 call/s sustained.
+- Some tokens (v4 hooks / launchpad accounting, e.g. MOW) have no mint event and few transfers: holder figures flagged `no_mint_event`.
+- Snapshots and universe are daily CSV shards so hourly commits stay small. `RHC_DATA=<dir>` redirects output for tests.
+
 ## Scoring rules (keep consistent)
 Five categories out of 10, total out of 50: Fundamentals, Not priced in, Value capture, Catalyst, Safety.
 - Coins in `overrides` keep the owner's manual Fundamentals, Value capture and Catalyst; Not priced in and Safety are always live. The chat score shows as a yellow tick.

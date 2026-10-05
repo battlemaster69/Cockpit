@@ -1,0 +1,24 @@
+# Maintained by hand. Lower-case addresses.
+
+# Never treated as a new token: native ETH placeholders, wrapped ETH and stablecoins pools are quoted in.
+skip_tokens:
+  "0x0000000000000000000000000000000000000000": native ETH (zero address placeholder)
+  "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee": native ETH (0xeee placeholder)
+
+# Excluded from holder counts and the top-20 share (pools, pool managers, launchpad curves, lockers, burn addresses).
+# Pool addresses of the token itself and any holder with contract code are excluded automatically.
+non_holders:
+  "0x0000000000000000000000000000000000000000": zero address
+  "0x000000000000000000000000000000000000dead": burn address
+  # contracts that sold to early buyers in two or more seed tokens (build_seed_wallets.py, 2026-10-05): shared
+  # trading infrastructure. 0x8366... also moves MOW, so it is almost certainly the Uniswap v4 pool manager.
+  "0x8366a39cc670b4001a1121b8f6a443a643e40951": shared seller (likely Uniswap v4 pool manager)
+  "0x8f10b468b06c6fd214b65f87778827f7d113f996": shared seller contract
+  "0xb477751b76cf82d00a686a1232f5fcd772414af3": shared seller contract
+  "0xb92fe925dc43a0ecde6c8b1a2709c170ec4fff4f": shared seller contract
+
+# Seed tokens for build_seed_wallets.py, by address only (copycat tickers are common on this chain).
+seed_tokens:
+  ORBIO: "0xaa07a0e9209e16ac99708c3ec70159c6ef3128a3"
+  PONS: "0x39dbed3a2bd333467115de45665cc57f813c4571"
+  HOOKR: "0x18e674231a58c239dc7daedcffe15ec3a24cff5c"   # deepest HOOKR pool on DexScreener 2026-10-05; confirm on hookr.fun

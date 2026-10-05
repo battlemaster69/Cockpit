@@ -1,0 +1,55 @@
+# Robinhood Chain survivor recorder: every threshold lives here, not in code.
+# Filters LABEL tokens; they never decide what gets recorded (the spec's "record everything" rule).
+
+chain:
+  rpc_url: https://rpc.mainnet.chain.robinhood.com   # official node, no key (chain ID 4663)
+  gt_network: robinhood                               # GeckoTerminal network id
+  ds_chain: robinhood                                 # DexScreener chain id
+
+discovery:
+  new_pool_pages_max: 10        # GeckoTerminal keeps only the newest ~200 pools (about an hour on this chain)
+  top_volume_pages: 3           # catch-up list on snapshot runs: tokens missed at launch
+  track_liquidity_usd_min: 5000 # a token joins the tracked set once its deepest pool holds this much
+  max_track_age_days: 30        # tracking ends this long after the token's oldest pool was created
+  recheck_below_floor_days: 3   # below-floor tokens are re-priced once a day until this age
+  recheck_every_hours: 24
+
+snapshot:
+  every_hours: 3.5              # a run this long after the last snapshot also snapshots (runs are hourly)
+  peak_from_candles_max: 6      # late-found tokens per run whose peak is set from GeckoTerminal daily candles
+  missing_runs_dead: 3          # snapshots in a row with no DexScreener pair before a token counts as dead
+
+filters:
+  age_days_min: 2
+  age_days_max: 10
+  liquidity_usd_min: 50000
+  volume_24h_usd_min: 100000
+  turnover_min: 0.5
+  turnover_max: 20
+  txns_24h_min: 300
+  drawdown_max_pct: 60
+
+cohort:
+  control_liquidity_usd_min: 5000
+  dead_liquidity_usd: 2000
+  random_seed: 4663
+
+checks:
+  max_tokens_per_run: 12        # new passers + controls checked per run; the rest wait for the next run
+  max_log_calls_per_token: 40
+  max_tries: 3
+  history_margin_days: 3        # transfer logs are read from this long before the token's oldest pool
+  holder_red_flag: 500
+  top20_red_flag_pct: 60
+  top_holders_code_check: 40    # top holders checked for contract code before the top-20 share
+  overlap_min: 3
+
+net:
+  # GeckoTerminal answered HTTP 429 after ~9 calls a minute on 2026-10-05: 12 s apart, and a 429 waits 30 s, then 60 s
+  # the RPC node answered HTTP 429 after ~60-90 calls in a minute or so: one a second
+  min_gap_s: {geckoterminal: 12, dexscreener: 0.5, rpc: 1.0}
+  max_calls_per_run: {geckoterminal: 25, dexscreener: 300, rpc: 500}
+  max_retries: 3
+  backoff_s: [5, 15, 45]
+  wait_after_429_s: 30
+  stop_after_429s: 3

@@ -1,2 +1,4 @@
 __pycache__/
 *.pyc
+rhc_recorder/data/.lock
+rhc_recorder/data/**/*.tmp
