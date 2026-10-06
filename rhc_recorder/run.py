@@ -40,7 +40,7 @@ NOW = time.time()
 RUN_UTC = datetime.fromtimestamp(NOW, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 DAY = RUN_UTC[:10]
 CH = CFG["chain"]
-ERRORS = []
+ERRORS, NOTES = [], []   # NOTES: coverage gaps, written to runs.csv `stopped`
 
 
 def utc(ts):
@@ -108,8 +108,13 @@ def admit(net, state, cands, found_by, log_all=True):
 
 
 def discover(net, state):
-    """Page through GeckoTerminal's new pools until reaching pools already seen."""
+    """Page through GeckoTerminal's new pools (newest first) until reaching the launch time of the newest pool the
+    last run saw. Not "until a page holds a seen pool": new launches push the list down during the 12 s between
+    pages, so page 2 repeats pools this same run saw on page 1 (that rule stopped a run after 2 pages, 2026-10-06).
+    If the page limit runs out first, the uncovered stretch is logged so the analysis knows about it."""
     seen, cands, n_new = state["seen_pools"], {}, 0
+    cursor = state.get("newest_pool_ts", 0)
+    newest, oldest_read = cursor, None
     for page in range(1, CFG["discovery"]["new_pool_pages_max"] + 1):
         pools = guarded("geckoterminal new_pools", gt.new_pools, net, CH["gt_network"], page, default=None)
         if not pools:
@@ -121,8 +126,13 @@ def discover(net, state):
             if t:
                 cands.setdefault(t["address"], {**t, "created": p["created"].timestamp(), "dex": p["dex"], "pool": p["pool"]})
         n_new += len(fresh)
-        if len(fresh) < len(pools):
+        times = [p["created"].timestamp() for p in pools]
+        newest, oldest_read = max(newest, max(times)), min(times)
+        if min(times) <= cursor:
             break
+    if cursor and oldest_read and oldest_read > cursor:
+        NOTES.append(f"discovery gap: pools launched {utc(cursor)} to {utc(oldest_read)} were past the page limit")
+    state["newest_pool_ts"] = newest
     # tokens an earlier run saw before DexScreener had indexed them: price them again (before this run's new ones)
     unpriced = {a: {**b, "address": a, "name": ""} for a, b in state["below"].items() if not b.get("checked") and b.get("added", 0) < NOW}
     for a in unpriced:
@@ -303,7 +313,7 @@ def main():
                "calls_geckoterminal": net.calls["geckoterminal"], "calls_dexscreener": net.calls["dexscreener"], "calls_rpc": net.calls["rpc"],
                "new_pools": n_new, "tokens_seen": len(disc), "tracked": len(state["tracked"]),
                "new_passers": sum(x["cohort"] == "passer" for x in cohort), "new_controls": sum(x["cohort"] == "control" for x in cohort),
-               "random_seed": seed, "stopped": net.stopped_note(), "errors": " | ".join(ERRORS)[:900]}
+               "random_seed": seed, "stopped": "; ".join(filter(None, [net.stopped_note()] + NOTES)), "errors": " | ".join(ERRORS)[:900]}
         store.append(store.DATA / "runs.csv", store.RUNS, [run], DRY)
         store.save_state(state, DRY)
         print(f"{RUN_UTC} {run['kind']}: {n_new} new pools, {len(disc)} tokens priced ({sum(1 for x in disc if x['tracked'])} tracked), "
