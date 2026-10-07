@@ -815,6 +815,35 @@ def score_summary(score):
     return {"pumped": s([x for x in score if x["pumped"]]), "other": s([x for x in score if not x["pumped"]])}
 
 
+def latest_dip(mkt, min_drop, lookback):
+    """The most recent market sell-off: scanning back from now, the first local low (lowest within 3 hours either
+    side, or still falling now) that sits `min_drop`+ below the market's high in the `lookback` hours before it.
+    The dip starts where the sell-off leg began: the start of the steepest 3-hour fall before the low, stepped back
+    while the hour before was higher. If that leg alone falls short of `min_drop` (a slow grind, no sharp leg), it
+    starts at the lookback high instead. Returns (drop, start index, low index), or (0, 0, 0) when there is none.
+    Replaces "the deepest drop in the 48h window", which anchored the Oct 7 00:30-02:30 UTC sell-off to a "peak" 45
+    hours earlier, so each coin's drop and its "own low" mixed in two days of unrelated moves."""
+    n = len(mkt)
+    for it in range(n - 1, 0, -1):
+        if mkt[it] > min(mkt[max(0, it - 3):it + 4]):
+            continue
+        lo = max(0, it - lookback)
+        high_i = max(range(lo, it), key=lambda k: mkt[k])
+        if mkt[it] / mkt[high_i] - 1 > -min_drop:
+            continue
+        # a flat stretch just above the bottom also passes the local-low test: take the episode's real low
+        it = min(range(lo, it + 1), key=lambda k: mkt[k])
+        lo = max(0, it - lookback)
+        high_i = max(range(lo, it), key=lambda k: mkt[k]) if it > lo else lo
+        ip = min(range(lo, it), key=lambda k: mkt[min(k + 3, it)] / mkt[k]) if it > lo else lo
+        while ip > lo and mkt[ip - 1] > mkt[ip]:
+            ip -= 1
+        if mkt[it] / mkt[ip] - 1 > -min_drop:
+            ip = high_i
+        return mkt[it] / mkt[ip] - 1, ip, it
+    return 0.0, 0, 0
+
+
 @module("Dip strength")
 def dip_strength(rows, history):
     """After a market dip in the last 48h, which coins took the hit and fought back harder than the market
@@ -833,13 +862,7 @@ def dip_strength(rows, history):
     # the live price: 48 hourly points of history plus "now"
     paths = {r["id"]: r["_spark"][-(n - 1):] + [r["price"] or r["_spark"][-1]] for r in coins}
     mkt = [statistics.median(paths[r["id"]][i] / paths[r["id"]][0] for r in top) for i in range(n)]
-    worst, peak = (0.0, 0, 0), 0  # deepest peak-to-trough drop, trough after peak
-    for i, v in enumerate(mkt):
-        if v > mkt[peak]:
-            peak = i
-        if v / mkt[peak] - 1 < worst[0]:
-            worst = (v / mkt[peak] - 1, peak, i)
-    mdrop, ip, it = worst
+    mdrop, ip, it = latest_dip(mkt, st.get("dip_min_pct", 2) / 100, st.get("dip_lookback_hours", 12))
     hours_ago = lambda i: n - 1 - i  # noqa: E731  sparkline points are hourly, the last one is now
     prices = {r["id"]: r["price"] for r in coins if r.get("price")}
     score_flags(mem, prices)

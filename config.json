@@ -71,6 +71,7 @@
   "strength": {
     "_note": "Dip strength: after a market dip, which coins fought back harder than the market. Checked hourly over the last 48h.",
     "dip_min_pct": 2,
+    "dip_lookback_hours": 12,
     "min_volume_usd": 20000000,
     "pumped_before_pct": 15,
     "alert_after_hours": 4,
