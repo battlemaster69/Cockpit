@@ -3,3 +3,5 @@ token_address,checked_utc,src_verified,has_mint,has_owner,can_pause,can_blacklis
 0xba1a2d9783ebe2b76493c5c12eb9813a0e062843,2026-10-05T10:23:09Z,,False,False,False,False,False,False,,,uniswap-v3-robinhood,,,too_many_transfers
 0x0b7c6c138dc75622f4200d157b13fb93e6bd94fa,2026-10-05T10:29:32Z,,False,False,False,False,False,False,10,0.0,uniswap-v4-robinhood,0,False,no_mint_event
 0x6a6a57d1e94eb586c5b505a1c81434bda3d6ed97,2026-10-05T10:29:32Z,,False,False,False,False,False,False,2073,5.85,uniswap-v4-robinhood,2,False,
+0x80877fe12ede96f807422d5d4ee4f4c47cebc8ff,2026-10-07T03:37:15Z,,False,False,False,False,False,False,151,43.02,uniswap-v4-robinhood,5,True,
+0xee049979960d5e42b389b941ec45790ca7b6e1f7,2026-10-07T03:37:15Z,,False,False,False,False,False,False,4556,2.57,uniswap-v3-robinhood,6,True,
