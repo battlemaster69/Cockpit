@@ -537,9 +537,12 @@ def fetch_etf_flows():
             notes.append(f"{asset} The Block: {str(e)[:80]}")
         if farside:
             try:
-                r = SESSION.get(f"https://farside.co.uk/{farside}/", headers=BROWSER_UA, timeout=40)
-                r.raise_for_status()
-                recent = farside_days(_farside_rows(r.text))
+                # plain urllib with a browser User-Agent: from a GitHub runner this got Farside's page where the
+                # requests session got 403 minutes later (Oct 7). Farside may also block some runner addresses outright.
+                import urllib.request
+                req = urllib.request.Request(f"https://farside.co.uk/{farside}/", headers={"User-Agent": BROWSER_UA["User-Agent"]})
+                with urllib.request.urlopen(req, timeout=40) as resp:
+                    recent = farside_days(_farside_rows(resp.read().decode("utf-8", "replace")))
                 if recent:
                     days.update(recent)  # same numbers where they overlap; Farside has the newest day first
                     src.append("Farside")
