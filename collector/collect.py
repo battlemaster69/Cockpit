@@ -411,6 +411,113 @@ def fetch_mvrv():
             "series": [round(r[1], 3) for r in rows[-365:]][::3]}
 
 
+# US spot ETF net flows, US$ millions a day, per fund, from Farside Investors (free, the usual reference; no XRP page).
+# Tested Oct 2026 (BTC Jan 2024-Sep 2026, ETH Jul 2024-Sep 2026, vs Binance daily closes): flows mostly FOLLOW price
+# (BTC corr with that day's return +0.41, with the 3 days before +0.40); a day's flow barely predicts the next days
+# (corr +0.03-0.06, unstable by year). One weak lean: weeks of heavy outflow (bottom 20% of 5-day sums) were followed by
+# weaker 2 weeks (BTC -1.2% vs +1.0% average over 10 days, ETH -1.9% vs +0.5%; overlapping windows). So: context and a
+# "heavy outflow week" flag, not a timing signal.
+FARSIDE = {"BTC": "https://farside.co.uk/bitcoin-etf-flow-all-data/", "ETH": "https://farside.co.uk/ethereum-etf-flow-all-data/",
+           "SOL": "https://farside.co.uk/sol/"}
+
+
+def _farside_rows(html):
+    """The rows of Farside's flow table (class "etf") as lists of cell texts."""
+    from html.parser import HTMLParser
+
+    class P(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.depth, self.rows, self.row, self.cell = 0, [], None, None
+
+        def handle_starttag(self, tag, attrs):
+            if tag == "table" and ("etf" in (dict(attrs).get("class") or "").split() or self.depth):
+                self.depth += 1
+            elif self.depth and tag == "tr":
+                self.row = []
+            elif self.depth and tag in ("td", "th") and self.row is not None:
+                self.cell = []
+
+        def handle_endtag(self, tag):
+            if tag == "table" and self.depth:
+                self.depth -= 1
+            elif self.depth and tag in ("td", "th") and self.cell is not None:
+                self.row.append(" ".join("".join(self.cell).split()))
+                self.cell = None
+            elif self.depth and tag == "tr" and self.row is not None:
+                self.rows.append(self.row)
+                self.row = None
+
+        def handle_data(self, data):
+            if self.cell is not None:
+                self.cell.append(data)
+    p = P()
+    p.feed(html)
+    return p.rows
+
+
+def _flow_num(s):
+    s = s.replace(",", "").strip()
+    if s in ("", "-"):
+        return None
+    try:
+        return -float(s.strip("()")) if s.startswith("(") else float(s)
+    except ValueError:
+        return None
+
+
+def etf_summary(rows):
+    """Daily totals and per-fund flows -> latest day, 5/20-day sums, streak, cumulative, and how unusual this week is."""
+    import re
+    tickers = max(rows, key=lambda r: sum(1 for c in r if re.fullmatch(r"[A-Z]{2,6}", c)))
+    days = []
+    for r in rows:
+        if not r or not re.fullmatch(r"\d{2} \w{3} \d{4}", r[0]):
+            continue
+        funds = {tickers[i]: _flow_num(r[i]) for i in range(1, min(len(r), len(tickers)) - 1) if re.fullmatch(r"[A-Z]{2,6}", tickers[i])}
+        if all(v is None for v in funds.values()):
+            continue  # a day not reported yet (Farside shows "-" for each fund and 0.0 as the total)
+        total = _flow_num(r[-1])
+        days.append((datetime.strptime(r[0], "%d %b %Y").strftime("%Y-%m-%d"), total if total is not None else sum(v or 0 for v in funds.values()), funds))
+    if not days:
+        raise RuntimeError("no flow rows")
+    totals = [d[1] for d in days]
+    sums5 = [sum(totals[i - 4:i + 1]) for i in range(4, len(totals))]
+    streak, sign = 0, (totals[-1] > 0) - (totals[-1] < 0)
+    for v in reversed(totals):
+        if sign and (v > 0) - (v < 0) == sign:
+            streak += 1
+        else:
+            break
+    last5 = {}
+    for _, _, f in days[-5:]:
+        for k, v in f.items():
+            last5[k] = last5.get(k, 0) + (v or 0)
+    s5 = sum(totals[-5:])
+    return {"date": days[-1][0], "latest": r2(totals[-1], 1), "sum5": r2(s5, 1), "sum20": r2(sum(totals[-20:]), 1),
+            "streak": streak * sign, "cum": r2(sum(totals), 0), "since": days[0][0], "days": len(days),
+            # where this week's 5-day sum ranks among all 5-day sums so far (the "heavy outflow week" flag is the bottom 20%)
+            "pct5": r2(sum(1 for x in sums5 if x <= s5) / len(sums5) * 100, 0) if len(sums5) >= 40 else None,
+            "funds_latest": sorted([[k, v] for k, v in days[-1][2].items() if v], key=lambda x: -abs(x[1]))[:6],
+            "funds_5d": sorted([[k, r2(v, 1)] for k, v in last5.items() if v], key=lambda x: -abs(x[1]))[:6],
+            "series": [[d[0], r2(d[1], 1)] for d in days[-60:]]}
+
+
+@module("ETF flows (Farside)")
+def fetch_etf_flows():
+    out = {}
+    for asset, url in FARSIDE.items():
+        try:
+            r = SESSION.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36"}, timeout=40)
+            r.raise_for_status()
+            out[asset] = etf_summary(_farside_rows(r.text))
+        except Exception as e:  # noqa: BLE001  one page failing keeps the others
+            log(f"ETF flows {asset}: {e}")
+    if not out:
+        raise RuntimeError("no Farside page could be read")
+    return {"fetched": NOW.isoformat(timespec="seconds"), **out}
+
+
 NATIVE = {"ethereum": "eth", "binancecoin": "bsc", "solana": "sol"}
 PLATFORMS = {"ethereum": "eth", "binance-smart-chain": "bsc", "solana": "sol"}
 
@@ -1760,6 +1867,11 @@ def main():
         elif universe_doc is None:
             ERRORS.setdefault("Universe", "No universe yet; will retry next run")
 
+    # -------- US spot ETF flows (every run: Farside posts each day once the funds report, in the US evening)
+    etf = fetch_etf_flows()
+    if etf:
+        cache["etf"] = {**(cache.get("etf") or {}), **etf}  # a page that failed keeps its last good numbers
+
     # -------- shortlist (every run)
     sl_rows = fetch_shortlist_markets(shortlist) or {}
     contracts = refresh_contracts(shortlist, cache) or cache.get("contracts", {})
@@ -1862,6 +1974,7 @@ def main():
         if cache.get("global") else None,
         "macro": cache.get("macro"),
         "mvrv": cache.get("mvrv"),
+        "etf": cache.get("etf"),
         "transfers": [e for e in events if e["usd"] >= TH["whale_list_usd"]][:50],
         "wallet_counts": {c: len(wallet_map(c)) for c in WALLET_KEYS},
         "strength": strength,

@@ -252,6 +252,7 @@ const clock = iso => {
   return d.toDateString() === new Date().toDateString() ? t : d.toLocaleDateString([], { day: "numeric", month: "short" }) + ", " + t;
 };
 const when = iso => `${clock(iso)} (${ago(iso)})`;
+const dateShort = s => new Date(s + "T12:00:00Z").toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" });
 function toast(msg) {
   const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); t.textContent = msg;
   document.body.appendChild(t); setTimeout(() => t.remove(), 3200);
@@ -454,10 +455,40 @@ function renderValue() {
         <td class="${t(c.fin.mcap_rev)}">${c.fin.mcap_rev.toFixed(1)}x</td><td>${c.fin.hold_share != null ? c.fin.hold_share.toFixed(0) + "%" : "–"}</td><td>${c.total}</td></tr>`).join("")
         || `<tr><td colspan="5">No revenue data yet.</td></tr>`}</tbody></table></div>`;
 }
+/* ================= US spot ETF flows (Farside) ================= */
+function flowBars(series, h = 54) {
+  const v = (series || []).map(x => x[1]).filter(x => x != null); if (!v.length) return "";
+  const w = 300, mx = Math.max(...v.map(Math.abs)) || 1, bw = w / v.length, mid = h / 2;
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true" style="grid-column:1/-1;width:100%;height:${h}px;display:block;margin-top:6px">
+    <line x1="0" x2="${w}" y1="${mid}" y2="${mid}" stroke="var(--line)" stroke-width="1"/>
+    ${v.map((x, i) => { const bh = Math.abs(x) / mx * (mid - 2); return `<rect x="${(i * bw + bw * .15).toFixed(1)}" width="${(bw * .7).toFixed(1)}" y="${(x >= 0 ? mid - bh : mid).toFixed(1)}" height="${Math.max(bh, .6).toFixed(1)}" fill="var(--${x >= 0 ? "ok" : "hot"})" opacity=".8"/>`; }).join("")}</svg>`;
+}
+const musd = v => v == null ? "–" : (v < 0 ? "−" : "+") + "$" + (Math.abs(v) >= 1000 ? (Math.abs(v) / 1000).toFixed(2) + "B" : Math.abs(v).toFixed(Math.abs(v) < 10 ? 1 : 0) + "M");
+function etfCard(name, e) {
+  if (!e) return "";
+  const heavy = e.pct5 != null && e.pct5 <= 20, strong = e.pct5 != null && e.pct5 >= 80;
+  const streak = e.streak ? `${Math.abs(e.streak)} day${Math.abs(e.streak) > 1 ? "s" : ""} of ${e.streak > 0 ? "inflows" : "outflows"} in a row` : "";
+  const launch = { "2024-01-11": 1, "2024-07-23": 1 }[e.since];
+  return `<div class="panel metric"><span class="label">${name} ETFs, ${dateShort(e.date)}</span><span class="chg">${streak}</span>
+    <span class="val ${tone(e.latest)}">${musd(e.latest)}</span><span class="chg ${tone(e.sum5)}">${musd(e.sum5)} in 5 days</span>
+    ${flowBars(e.series)}
+    <p>${e.pct5 != null ? (heavy ? `<b class="bad">Heavy outflow week</b>: this 5-day total is in the bottom ${Math.max(e.pct5, 1).toFixed(0)}% of all weeks since launch. ` : strong ? `<b class="good">Strong week</b>: this 5-day total is in the top ${Math.max(100 - e.pct5, 1).toFixed(0)}% since launch. ` : `This 5-day total sits at the ${e.pct5.toFixed(0)}th percentile of weeks since launch. `) : ""}20 days <b class="${tone(e.sum20)}">${musd(e.sum20)}</b> · ${launch ? "since launch" : "since " + dateShort(e.since)} <b>${musd(e.cum)}</b></p>
+    ${e.funds_5d?.length ? `<p>5 days by fund: ${e.funds_5d.map(([k, v]) => `<span style="white-space:nowrap">${esc(k)} <span class="${tone(v)}">${musd(v)}</span></span>`).join(" · ")}</p>` : ""}</div>`;
+}
+function etfSection() {
+  const E = DATA.etf; if (!E) return "";
+  return `<h2>US spot ETF flows</h2>
+    <p class="hint">Money going into (green) or out of (red) the US spot ETFs each trading day, from <a href="https://farside.co.uk/" target="_blank" rel="noopener">Farside Investors</a>. A day is filled in once the funds report, in the US evening. Bars: the last 60 trading days.</p>
+    ${etfCard("Bitcoin", E.BTC)}${etfCard("Ethereum", E.ETH)}${etfCard("Solana", E.SOL)}
+    <details class="panel" style="padding:10px 14px"><summary class="sub" style="cursor:pointer">How much to read into it (tested on 2.5 years of flows)</summary>
+      <p class="hint" style="margin:8px 0"><b>Flows mostly follow price.</b> A day's Bitcoin ETF flow moves with that day's price (correlation +0.41), and the 3 days before predict it just as well: money chases moves that already happened. A single day's flow says almost nothing about the next days (correlation +0.03 to +0.06, not stable from year to year), and even the biggest inflow days were followed by about-average returns.</p>
+      <p class="hint" style="margin:8px 0"><b>One weak lean:</b> a <b class="bad">heavy outflow week</b> (the bottom 20% of 5-day totals since launch) was followed by weaker two weeks: Bitcoin −1.2% over the next 10 days against +1.0% on average, Ethereum −1.9% against +0.5%. A reason for caution, not a sell signal. Solana's history here is only a few weeks, so it has no percentile yet. XRP ETFs aren't covered: there is no free daily source.</p></details>`;
+}
 function renderFlows() {
   const s = DATA.stablecoins, dom = DATA.dominance, tx = DATA.transfers || [];
   const bal = (DATA.shortlist || []).filter(c => c.flows?.method === "balance" && c.track);
-  return `<h2>Money supply</h2>
+  return `${etfSection()}
+    <h2>Money supply</h2>
     <div class="panel metric"><span class="label">Stablecoins in circulation</span><span class="chg ${tone(s?.chg_30d)}">${pct(s?.chg_30d)} 30d</span>
       <span class="val">${usd(s?.total)}</span><span class="chg ${tone(s?.chg_7d)}">${pct(s?.chg_7d)} 7d</span>${spark(s?.series)}
       <p>Rising supply means new cash entering crypto, fuel for the next leg up.</p></div>
