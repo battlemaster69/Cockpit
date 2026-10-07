@@ -190,6 +190,8 @@ tr.click { cursor: pointer; }
 .pos td small { color: var(--dim); font-size: .72rem; margin-left: 2px; }
 .pos + .hint { margin-top: -2px; }
 .srow { grid-template-columns: minmax(0, 1fr) 64px auto; }
+a.row { color: inherit; text-decoration: none; }
+.row.ctl { margin-left: 18px; width: calc(100% - 18px); border-style: dashed; }
 .srow .mini svg { width: 64px; height: 26px; display: block; }
 .srow .big { font-family: var(--num); font-weight: 700; font-size: 1.25rem; line-height: 1.1; text-align: right; font-variant-numeric: tabular-nums; }
 .srow .sub { display: block; }
@@ -263,7 +265,7 @@ function spark(values, color = "var(--ink)", h = 42) {
 }
 
 /* ================= state ================= */
-let DATA = null, UNI = null, RADAR = null, BYID = new Map();
+let DATA = null, UNI = null, RADAR = null, ALPHA = null, BYID = new Map();
 let SHORT = new Set();
 let current = (location.hash.slice(1) || "shortlist").split("/")[0];
 const ui = { q: "", sort: "total", filter: "all", shown: 40, lsort: "dist" };
@@ -664,7 +666,63 @@ function renderLevels() {
     ${near.length ? `<details class="panel" style="padding:10px 14px"><summary class="sub" style="cursor:pointer">${near.length} calm coin${near.length > 1 ? "s" : ""} approaching a level (within 10%, or not enough touches yet)</summary><div style="margin-top:10px">${near.map(levelRow).join("")}</div></details>` : ""}`;
 }
 
-const TABS = [["shortlist", "Shortlist", renderShortlist], ["strength", "Strength", renderStrength], ["radar", "Radar", renderRadar], ["levels", "Levels", renderLevels], ["universe", "Universe", renderUniverse], ["value", "Value", renderValue],
+/* ================= RH Chain: the Robinhood Chain survivor experiment (rhc_recorder -> alpha.json) ================= */
+function alphaTags(fl) {
+  if (!fl) return `<span class="tag meh">checks pending</span>`;
+  const t = [];
+  if (fl.seed_flag) t.push(`<span class="tag good" title="Early buyers of ORBIO, PONS or HOOKR holding it">${fl.seeds} seed wallets</span>`);
+  if (fl.mint) t.push(`<span class="tag bad">can mint</span>`);
+  if (fl.pause || fl.blacklist) t.push(`<span class="tag bad">${fl.blacklist ? "can blacklist" : "can pause"}</span>`);
+  if (fl.fee) t.push(`<span class="tag hot">tax adjustable</span>`);
+  if (fl.proxy) t.push(`<span class="tag hot">upgradeable</span>`);
+  if (fl.owner) t.push(`<span class="tag hot">has owner</span>`);
+  if (fl.note === "no_mint_event") t.push(`<span class="tag meh" title="Supply created off the transfer log: holder figures not reliable">holder data unreliable</span>`);
+  else if (fl.note === "too_many_transfers") t.push(`<span class="tag meh">too busy to count holders</span>`);
+  else {
+    if (fl.top20 != null && fl.top20 >= 60) t.push(`<span class="tag bad">top 20 hold ${fl.top20.toFixed(0)}%</span>`);
+    if (fl.holders != null && fl.holders < 500) t.push(`<span class="tag hot">${fl.holders} holders</span>`);
+  }
+  return t.join("");
+}
+const alphaStats = x => `Age ${x.age}d · liquidity ${usd(x.liquidity)} · 24h volume ${usd(x.volume)} (turnover ${x.turnover ?? "–"}×) · ${x.txns} trades · ${x.drawdown != null ? x.drawdown.toFixed(0) + "% below peak" : "no peak yet"}`;
+function alphaRow(x, main, label, sub, tags, cls = "") {
+  return `<a class="row srow ${cls}" href="${esc(x.url || `https://dexscreener.com/robinhood/${x.address}`)}" target="_blank" rel="noopener">
+    <span><span class="sym">${esc(x.symbol || x.address.slice(0, 8))}</span>${tags}<span class="sub">${sub}</span></span>
+    <span class="mini">${spark(x.spark, "var(--ink)", 26)}</span>
+    <span><span class="big ${tone(main)}">${main == null ? "–" : pct(main)}</span><span class="sub" style="text-align:right">${label}</span></span></a>`;
+}
+function renderAlpha() {
+  const A = ALPHA;
+  if (!A) return `<p class="empty">The Robinhood Chain recorder hasn't published yet. It runs every 30 minutes.</p>`;
+  const S = A.summary || {}, P = S.passer || {}, C = S.control || {}, f = A.settings.filters, h = A.health || {};
+  const need = A.settings.verdict_passers, cohort = A.cohort || [];
+  const passers = cohort.filter(x => x.cohort === "passer").sort((a, b) => b.assigned.localeCompare(a.assigned));
+  const coh = x => alphaRow(x, x.ret, x.dead ? "dead" : "since qualifying",
+    `${x.cohort === "control" ? "Random control · " : ""}qualified ${clock(x.assigned)} at ${price(x.price_at_assign)}, aged ${x.age_at_assign}d`
+      + Object.entries(x.at || {}).map(([d, v]) => ` · ${d}d: ${pct(v)}`).join(""),
+    (x.dead ? `<span class="tag bad">dead</span>` : "") + alphaTags(x.flags), x.cohort === "control" ? "ctl" : "");
+  const sumRow = (name, s) => `<tr><td><b>${name}</b></td><td>${s.n ?? 0}</td><td class="${tone(s.median)}">${pct(s.median)}</td><td>${s.up2x ?? 0}</td><td>${s.dead80 ?? 0}</td><td>${s.n7 ? `${s.n7} · ${pct(s.median7)}` : "–"}</td></tr>`;
+  const funnel = A.funnel || {}, fn = [["liquidity", `Liquidity $${(f.liquidity_usd_min / 1000).toFixed(0)}k+`], ["volume", `24h volume $${(f.volume_24h_usd_min / 1000).toFixed(0)}k+`],
+    ["turnover", `Turnover ${f.turnover_min}–${f.turnover_max}×`], ["txns", `${f.txns_24h_min}+ trades a day`], ["drawdown", `Under ${f.drawdown_max_pct}% below peak`], ["all", "All six"]];
+  const stale = (Date.now() - new Date(A.generated_at)) / 60000 > 90;
+  return `<p class="hint" style="margin-top:14px"><b>An experiment, not signals.</b> Robinhood Chain tokens 2 to 10 days old that are still healthy (<b>passers</b>: all six filters below) next to a <b>random control</b> of the same age for each. Nothing here is proven: the verdict comes once ${need} passers have 7 days of data, and then the filters are kept, changed or dropped. Tap a token to open it on DexScreener.</p>
+    <h2>Scoreboard</h2>
+    <div class="panel scroll"><table><thead><tr><th>Group</th><th>Tokens</th><th>Median since qualifying</th><th>Up 2x+</th><th>Dead or −80%</th><th>7-day: n · median</th></tr></thead>
+      <tbody>${sumRow("Passers", P)}${sumRow("Controls", C)}</tbody></table></div>
+    <p class="hint">${P.n7 || 0} of ${need} passers have 7 days of data${(P.n || 0) < need ? `; about 2 qualify a day so far` : ""}. Dead tokens count as −100%. Watch the gap between the two medians, and whether passers avoid the dead row more than controls do.</p>
+    ${passers.map(p => coh(p) + cohort.filter(c => c.cohort === "control" && c.matched === p.address).map(coh).join("")).join("") || `<p class="empty" style="padding:14px">No passers yet.</p>`}
+    <h2>Passing now <span class="sub">${(A.passing || []).length}</span></h2>
+    <p class="hint">Every tracked token aged ${f.age_days_min}–${f.age_days_max} days, re-checked at this run's prices: liquidity $${(f.liquidity_usd_min / 1000).toFixed(0)}k+, 24h volume $${(f.volume_24h_usd_min / 1000).toFixed(0)}k+, turnover ${f.turnover_min}–${f.turnover_max}× (higher is usually wash trading), ${f.txns_24h_min}+ trades a day, under ${f.drawdown_max_pct}% below its peak. Unproven: a list to study, not to buy. Big number: 24h change.</p>
+    ${(A.passing || []).map(x => alphaRow(x, x.change_24h, "24h", alphaStats(x), alphaTags(x.flags))).join("") || `<p class="empty" style="padding:14px">Nothing passes all six right now.</p>`}
+    ${(A.close || []).length ? `<details class="panel" style="padding:10px 14px"><summary class="sub" style="cursor:pointer">${A.close.length} close: five of six filters</summary><div style="margin-top:10px">
+      ${A.close.map(x => alphaRow(x, x.change_24h, "24h", alphaStats(x) + ` · <b>misses:</b> ${x.miss.map(esc).join("; ")}`, alphaTags(x.flags))).join("")}</div></details>` : ""}
+    <h2>Filter funnel</h2>
+    <p class="hint">Of the ${funnel.in_band ?? 0} tracked tokens aged ${f.age_days_min}–${f.age_days_max} days right now, how many pass each filter.</p>
+    <div class="panel scroll"><table><tbody>${fn.map(([k, l]) => `<tr><td>${l}</td><td><b>${funnel[k] ?? 0}</b> of ${funnel.in_band ?? 0}</td></tr>`).join("")}</tbody></table></div>
+    <p class="hint">Recorder: last run ${when(A.generated_at)}${stale ? ` <b class="meh">(looks paused)</b>` : ""} · last 24h: ${h.runs_24h} runs, ${(h.new_pools_24h ?? 0).toLocaleString()} new pools, ${(h.tracked ?? 0).toLocaleString()} tokens tracked · last full snapshot ${h.last_snapshot ? when(h.last_snapshot) : "–"}${h.gap_runs_24h ? ` · <span class="meh">launches missed: ${h.gap_minutes_24h} min across ${h.gap_runs_24h} runs</span>` : " · no launches missed"}. Raw data: <a href="https://github.com/battlemaster69/Cockpit/tree/main/rhc_recorder/data" target="_blank" rel="noopener">rhc_recorder/data</a>.</p>`;
+}
+
+const TABS = [["shortlist", "Shortlist", renderShortlist], ["strength", "Strength", renderStrength], ["radar", "Radar", renderRadar], ["levels", "Levels", renderLevels], ["alpha", "RH Chain", renderAlpha], ["universe", "Universe", renderUniverse], ["value", "Value", renderValue],
   ["flows", "Flows", renderFlows], ["macro", "Macro", renderMacro], ["alerts", "Alerts", renderAlerts]];
 
 /* ================= coin detail sheet ================= */
@@ -892,9 +950,10 @@ function absorb(data, uni) {
 // pick up a new hourly run without a manual reload: on return to the page and every 5 minutes
 async function refresh() {
   if (document.hidden || !DATA || $("#layer").innerHTML) return stamp();  // don't redraw under an open sheet
-  const [data, radar] = await Promise.all([getJson("data.json"), getJson("radar.json")]);
+  const [data, radar, alpha] = await Promise.all([getJson("data.json"), getJson("radar.json"), getJson("alpha.json")]);
   let changed = false;
   if (radar && radar.generated_at !== RADAR?.generated_at) { RADAR = radar; changed = true; }
+  if (alpha && alpha.generated_at !== ALPHA?.generated_at) { ALPHA = alpha; changed = true; }
   if (data && data.generated_at !== DATA.generated_at) {
     const uni = data.universe_at !== UNI?.generated_at ? await getJson("universe.json") : null;
     absorb(data, uni); changed = true;
@@ -904,8 +963,8 @@ async function refresh() {
 }
 
 (async function boot() {
-  const [data, uni, sl, radar] = await Promise.all([getJson("data.json"), getJson("universe.json"), getJson("shortlist.json"), getJson("radar.json")]);
-  RADAR = radar;
+  const [data, uni, sl, radar, alpha] = await Promise.all([getJson("data.json"), getJson("universe.json"), getJson("shortlist.json"), getJson("radar.json"), getJson("alpha.json")]);
+  RADAR = radar; ALPHA = alpha;
   if (!data) {
     $("#stamp").textContent = "No data";
     $("#app").innerHTML = `<p class="empty">No data yet. Open your repo on GitHub, go to Actions, pick <b>Collect market data</b> and press <b>Run workflow</b>. This page fills in a few minutes later.</p>`;

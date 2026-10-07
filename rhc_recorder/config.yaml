@@ -7,7 +7,8 @@ chain:
   ds_chain: robinhood                                 # DexScreener chain id
 
 discovery:
-  new_pool_pages_max: 15        # 20 pools a page, ~180 launches an hour: 15 pages reach back ~75 minutes
+  new_pool_pages_max: 10        # GeckoTerminal serves 10 pages (200 pools; page 11 is HTTP 401): runs every 30 min
+  unlisted_retries: 3           # runs a token DexScreener has not listed is re-priced before it is dropped
   top_volume_pages: 3           # catch-up list on snapshot runs: tokens missed at launch
   track_liquidity_usd_min: 5000 # a token joins the tracked set once its deepest pool holds this much
   max_track_age_days: 30        # tracking ends this long after the token's oldest pool was created
@@ -48,7 +49,7 @@ net:
   # GeckoTerminal answered HTTP 429 after ~9 calls a minute on 2026-10-05: 12 s apart, and a 429 waits 30 s, then 60 s
   # the RPC node answered HTTP 429 after ~60-90 quick calls, sooner from GitHub's runners: 1.5 s apart
   min_gap_s: {geckoterminal: 12, dexscreener: 0.5, rpc: 1.5}
-  max_calls_per_run: {geckoterminal: 30, dexscreener: 300, rpc: 500}
+  max_calls_per_run: {geckoterminal: 25, dexscreener: 300, rpc: 500}
   max_retries: 3
   backoff_s: [5, 15, 45]
   wait_after_429_s: 30

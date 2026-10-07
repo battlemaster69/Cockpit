@@ -2,11 +2,12 @@ name: Robinhood Chain recorder
 
 on:
   schedule:
-    - cron: "37 * * * *"     # best-effort backup; a cron-job.org timer dispatches this hourly with auto=true
+    - cron: "7,37 * * * *"   # best-effort backup; a cron-job.org timer dispatches this every 30 min with auto=true
+    # every 30 min: GeckoTerminal lists only 10 pages (200 pools) of new pools, and busy hours launch ~200
   workflow_dispatch:
     inputs:
       auto:
-        description: "Started by a timer: skip if the last run is under 40 minutes old"
+        description: "Started by a timer: skip if the last run is under 20 minutes old"
         type: boolean
         default: false
       snapshot:
@@ -36,7 +37,7 @@ jobs:
         run: |
           age=$(python3 -c "import json,time; print(int(time.time() - json.load(open('rhc_recorder/data/state.json'))['last_run']))" 2>/dev/null || echo 999999)
           echo "last run ${age}s ago"
-          if [ "$age" -lt 2400 ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; fi
+          if [ "$age" -lt 1200 ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; fi
 
       - uses: actions/setup-python@v6
         if: steps.gate.outputs.skip != 'true'
@@ -55,7 +56,7 @@ jobs:
         run: |
           git config user.name "cockpit-bot"
           git config user.email "cockpit-bot@users.noreply.github.com"
-          git add rhc_recorder/data/ 2>/dev/null || true
+          git add rhc_recorder/data/ docs/alpha.json 2>/dev/null || true
           git diff --cached --quiet && exit 0
           git commit -m "rhc: $(date -u +'%Y-%m-%d %H:%M')"
           for i in 1 2 3 4; do

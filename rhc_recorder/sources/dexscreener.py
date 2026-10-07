@@ -22,6 +22,7 @@ def _summary(pairs):
             "volume_24h": _num((best.get("volume") or {}).get("h24")) or 0.0,
             "txns_24h": int((tx.get("buys") or 0) + (tx.get("sells") or 0)),
             "market_cap": _num(best.get("marketCap")) or _num(best.get("fdv")),
+            "change_24h": _num((best.get("priceChange") or {}).get("h24")), "url": best.get("url") or "",
             "oldest_pair_ms": min(created) if created else None,
             "pairs": sorted({p["pairAddress"].lower() for p in pairs})}
 

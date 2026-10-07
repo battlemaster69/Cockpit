@@ -22,6 +22,7 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import board  # noqa: E402
 import checks  # noqa: E402
 import filters  # noqa: E402
 import store  # noqa: E402
@@ -100,8 +101,12 @@ def admit(net, state, cands, found_by, log_all=True):
             state["tracked"][a] = {"symbol": rows[-1]["symbol"], "created": created, "dex": c["dex"], "pair": s["pair"],
                                    "peak": s["price"] or 0, "peak_source": "candles_pending" if late else "recorder", "misses": 0}
         elif age < d["recheck_below_floor_days"]:
-            state["below"][a] = {"created": created, "dex": c["dex"], "symbol": rows[-1]["symbol"], "pool": c["pool"],
-                                 "checked": NOW if s else 0, "added": NOW}   # not on DexScreener yet: priced again next run
+            tries = c.get("tries", 0) + (0 if s else 1)
+            # not on DexScreener yet: priced again on the next runs, then dropped (2,400 never-listed launchpad tokens
+            # were re-priced every run, 2026-10-07, pushing DexScreener calls from 57 toward the 300 cap)
+            if s or tries < d["unlisted_retries"]:
+                state["below"][a] = {"created": created, "dex": c["dex"], "symbol": rows[-1]["symbol"], "pool": c["pool"],
+                                     "checked": NOW if s else 0, "added": NOW, "tries": tries}
     log = rows if log_all else [x for x in rows if x["tracked"]]
     store.append(store.DATA / "universe" / f"{DAY}.csv", store.UNIVERSE, log, DRY)
     return log
@@ -315,6 +320,7 @@ def main():
                "new_passers": sum(x["cohort"] == "passer" for x in cohort), "new_controls": sum(x["cohort"] == "control" for x in cohort),
                "random_seed": seed, "stopped": "; ".join(filter(None, [net.stopped_note()] + NOTES)), "errors": " | ".join(ERRORS)[:900]}
         store.append(store.DATA / "runs.csv", store.RUNS, [run], DRY)
+        guarded("board", board.build, net, state, CFG, NOW, RUN_UTC, DRY, ERRORS)  # docs/alpha.json for the dashboard
         store.save_state(state, DRY)
         print(f"{RUN_UTC} {run['kind']}: {n_new} new pools, {len(disc)} tokens priced ({sum(1 for x in disc if x['tracked'])} tracked), "
               f"{len(state['tracked'])} tracked in all, {len(rows)} snapshot rows, {len(cohort)} cohort rows, {n_checked} checked; "

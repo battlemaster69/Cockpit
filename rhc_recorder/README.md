@@ -7,13 +7,15 @@ The full spec is the "Robinhood Chain Survivor Recorder — Spec" doc.
 
 ## How it runs
 
-- `.github/workflows/rhc_recorder.yml`, every hour. Every run finds new pools (GeckoTerminal lists only the newest
-  ~200, about an hour on this chain). A run 3.5+ hours after the last snapshot also catches up on missed tokens,
-  snapshots every tracked token, labels the filters, assigns passers and controls, and checks them.
-- Timer: GitHub's schedule is best-effort on this repo, so add a cron-job.org job like the collector's: every hour at
-  :37, `POST https://api.github.com/repos/battlemaster69/Cockpit/actions/workflows/rhc_recorder.yml/dispatches`,
+- `.github/workflows/rhc_recorder.yml`, every 30 minutes. Every run finds new pools (GeckoTerminal serves only 10
+  pages, the newest 200 pools; busy hours launch ~200). A run 3.5+ hours after the last snapshot also catches up on
+  missed tokens, snapshots every tracked token, labels the filters, assigns passers and controls, and checks them.
+- Every run also writes `docs/alpha.json` for the Cockpit's "RH Chain" tab (`board.py`): the passers-vs-controls
+  scoreboard, tokens passing now and on 5 of 6 filters (re-priced every run), the filter funnel, recorder health.
+- Timer: GitHub's schedule is best-effort on this repo, so a cron-job.org job dispatches it at :07 and :37,
+  `POST https://api.github.com/repos/battlemaster69/Cockpit/actions/workflows/rhc_recorder.yml/dispatches`,
   body `{"ref":"main","inputs":{"auto":"true"}}`, same token. An `auto` run skips itself if the last run is under
-  40 minutes old.
+  20 minutes old.
 - No keys. Sources: GeckoTerminal (discovery), DexScreener (prices), the chain's official RPC node (checks; the
   Blockscout API is behind a Cloudflare bot check).
 
