@@ -37,3 +37,4 @@ run_utc,kind,duration_s,calls_geckoterminal,calls_dexscreener,calls_rpc,new_pool
 2026-10-07T14:37:19Z,discover,162,11,84,0,183,176,1289,0,0,,discovery gap: pools launched 2026-10-07T13:36:03Z to 2026-10-07T13:54:15Z were past the page limit,geckoterminal new_pools: 401 Client Error: Unauthorized for url: https://api.geckoterminal.com/api/v2/networks/robinhood/new_pools?page=11&include=base_token%2Cquote_token%2Cdex
 2026-10-07T15:00:50Z,discover,114,7,85,0,129,119,1320,0,0,,,
 2026-10-07T15:37:25Z,snapshot,227,16,141,0,187,176,1324,0,0,1791392108,,
+2026-10-07T16:37:17Z,discover,153,10,91,0,184,44,1335,0,0,,discovery gap: pools launched 2026-10-07T15:35:19Z to 2026-10-07T16:25:45Z were past the page limit,
