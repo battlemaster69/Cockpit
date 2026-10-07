@@ -705,7 +705,35 @@ function renderAlpha() {
   const funnel = A.funnel || {}, fn = [["liquidity", `Liquidity $${(f.liquidity_usd_min / 1000).toFixed(0)}k+`], ["volume", `24h volume $${(f.volume_24h_usd_min / 1000).toFixed(0)}k+`],
     ["turnover", `Turnover ${f.turnover_min}–${f.turnover_max}×`], ["txns", `${f.txns_24h_min}+ trades a day`], ["drawdown", `Under ${f.drawdown_max_pct}% below peak`], ["all", "All six"]];
   const stale = (Date.now() - new Date(A.generated_at)) / 60000 > 90;
-  return `<p class="hint" style="margin-top:14px"><b>An experiment, not signals.</b> Robinhood Chain tokens 2 to 10 days old that are still healthy (<b>passers</b>: all six filters below) next to a <b>random control</b> of the same age for each. Nothing here is proven: the verdict comes once ${need} passers have 7 days of data, and then the filters are kept, changed or dropped. Tap a token to open it on DexScreener.</p>
+  const guide = `<details class="panel" style="padding:12px 14px" ${passers.length ? "" : "open"}><summary style="cursor:pointer"><b>What everything means</b></summary>
+    <p class="hint" style="margin:8px 0"><b>The experiment.</b> Every 30 minutes the recorder finds every new token launched on Robinhood Chain (about 4,000 a day) and follows each one that reaches $5,000 of liquidity. When a token aged ${f.age_days_min}–${f.age_days_max} days first meets all six filters, it becomes a <b>passer</b>, and one token of the same age that failed the filters is picked at random as its <b>control</b>. Both are then followed the same way. If the filters work, passers should do clearly better than controls. If they do about the same, the filters are just picking random tokens.</p>
+    <p class="hint" style="margin:8px 0"><b>The six filters</b></p>
+    <ul class="steps">
+      <li><b>Age ${f.age_days_min}–${f.age_days_max} days</b>, counted from the token's first pool: past the launch-day bots and snipers, but before most people notice it.</li>
+      <li><b>Liquidity</b> $${(f.liquidity_usd_min / 1000).toFixed(0)}k+: the money in its deepest trading pool. Below that, even a small sale moves the price a lot and getting out is hard.</li>
+      <li><b>24h volume</b> $${(f.volume_24h_usd_min / 1000).toFixed(0)}k+: people are still trading it.</li>
+      <li><b>Turnover</b> ${f.turnover_min}–${f.turnover_max}×: a day's volume divided by liquidity. Under ${f.turnover_min}× it is barely traded; over ${f.turnover_max}× the volume is usually fake, the same money traded back and forth (wash trading) to look busy.</li>
+      <li><b>${f.txns_24h_min}+ trades a day</b>: many traders, not a few wallets.</li>
+      <li><b>Drawdown</b> under ${f.drawdown_max_pct}%: how far the price sits below its highest point so far. More than that and it has already collapsed.</li>
+    </ul>
+    <p class="hint" style="margin:8px 0"><b>Scoreboard columns.</b> <b>Median since qualifying</b>: the middle return of the group from the price when each token qualified to now. <b>Up 2x+</b>: how many have doubled or more. <b>Dead or −80%</b>: how many died (liquidity under $2,000, counted as −100%) or lost 80%+. <b>7-day</b>: how many have been followed for 7 days, and their middle return at that point; this is the number the verdict uses. On each token, "aged 4.6d" is its age when it qualified, and "3d / 7d / 14d" are its returns at those points.</p>
+    <p class="hint" style="margin:8px 0"><b>Tags</b> (checks on passers and controls, read from the token's contract and its transfer history; they are recorded to see which matter, not to rule tokens out):</p>
+    <ul class="steps">
+      <li><span class="tag good">seed wallets</span> how many of 493 wallets that bought ORBIO, PONS or HOOKR in their first 3 days also hold this token. 3 or more is flagged: the same early buyers showing up again.</li>
+      <li><span class="tag bad">can mint</span> the contract can create new tokens, which can dilute holders at any time.</li>
+      <li><span class="tag bad">can pause / can blacklist</span> someone can freeze trading, or block particular wallets from selling.</li>
+      <li><span class="tag hot">tax adjustable</span> the buy or sell fee can be changed after launch, including raised to make selling impossible.</li>
+      <li><span class="tag hot">upgradeable</span> the contract's code can be swapped for different code later.</li>
+      <li><span class="tag hot">has owner</span> an admin address still controls the contract (ownership not given up). It matters most combined with the tags above.</li>
+      <li><span class="tag bad">top 20 hold X%</span> the 20 largest holders (pools and other contracts left out) own over 60% of the supply: a few wallets can dump on everyone else.</li>
+      <li><span class="tag hot">N holders</span> fewer than 500 wallets hold it.</li>
+      <li><span class="tag meh">holder data unreliable</span> the token's supply was not created through normal transfers (some launchpad and Uniswap v4 tokens work this way), so holder counts can't be worked out. Not a warning about the token itself.</li>
+      <li><span class="tag meh">too busy to count holders</span> too many transfers to rebuild the holder list within the time allowed; usually heavy trading or wash trading.</li>
+      <li><span class="tag meh">checks pending</span> not checked yet; checks run on passers and controls only, a few per run.</li>
+    </ul>
+    <p class="hint" style="margin:8px 0">The checks look for common patterns in the contract's code. A cleverly written contract can hide a function under a different name, so no tags means no common red flags found, not "safe".</p></details>`;
+  return `<p class="hint" style="margin-top:14px"><b>An experiment, not signals.</b> Robinhood Chain tokens 2 to 10 days old that are still healthy (<b>passers</b>: all six filters) next to a <b>random control</b> of the same age for each. Nothing here is proven: the verdict comes once ${need} passers have 7 days of data, and then the filters are kept, changed or dropped. Tap a token to open it on DexScreener.</p>
+    ${guide}
     <h2>Scoreboard</h2>
     <div class="panel scroll"><table><thead><tr><th>Group</th><th>Tokens</th><th>Median since qualifying</th><th>Up 2x+</th><th>Dead or −80%</th><th>7-day: n · median</th></tr></thead>
       <tbody>${sumRow("Passers", P)}${sumRow("Controls", C)}</tbody></table></div>
@@ -719,7 +747,7 @@ function renderAlpha() {
     <h2>Filter funnel</h2>
     <p class="hint">Of the ${funnel.in_band ?? 0} tracked tokens aged ${f.age_days_min}–${f.age_days_max} days right now, how many pass each filter.</p>
     <div class="panel scroll"><table><tbody>${fn.map(([k, l]) => `<tr><td>${l}</td><td><b>${funnel[k] ?? 0}</b> of ${funnel.in_band ?? 0}</td></tr>`).join("")}</tbody></table></div>
-    <p class="hint">Recorder: last run ${when(A.generated_at)}${stale ? ` <b class="meh">(looks paused)</b>` : ""} · last 24h: ${h.runs_24h} runs, ${(h.new_pools_24h ?? 0).toLocaleString()} new pools, ${(h.tracked ?? 0).toLocaleString()} tokens tracked · last full snapshot ${h.last_snapshot ? when(h.last_snapshot) : "–"}${h.gap_runs_24h ? ` · <span class="meh">launches missed: ${h.gap_minutes_24h} min across ${h.gap_runs_24h} runs</span>` : " · no launches missed"}. Raw data: <a href="https://github.com/battlemaster69/Cockpit/tree/main/rhc_recorder/data" target="_blank" rel="noopener">rhc_recorder/data</a>.</p>`;
+    <p class="hint">Recorder: last run ${when(A.generated_at)}${stale ? ` <b class="meh">(looks paused)</b>` : ""} · last 24h: ${h.runs_24h} runs, ${(h.new_pools_24h ?? 0).toLocaleString()} new pools, ${(h.tracked ?? 0).toLocaleString()} tokens tracked · last full snapshot ${h.last_snapshot ? when(h.last_snapshot) : "–"}${h.gap_runs_24h ? ` · <span class="meh">launches missed: ${h.gap_minutes_24h} min across ${h.gap_runs_24h} runs</span> (new tokens launched while the list of new pools had already moved past them; they are never recorded)` : " · no launches missed"}. Raw data: <a href="https://github.com/battlemaster69/Cockpit/tree/main/rhc_recorder/data" target="_blank" rel="noopener">rhc_recorder/data</a>.</p>`;
 }
 
 const TABS = [["shortlist", "Shortlist", renderShortlist], ["strength", "Strength", renderStrength], ["radar", "Radar", renderRadar], ["levels", "Levels", renderLevels], ["alpha", "RH Chain", renderAlpha], ["universe", "Universe", renderUniverse], ["value", "Value", renderValue],
