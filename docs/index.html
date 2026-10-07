@@ -468,21 +468,20 @@ function etfCard(name, e) {
   if (!e) return "";
   const heavy = e.pct5 != null && e.pct5 <= 20, strong = e.pct5 != null && e.pct5 >= 80;
   const streak = e.streak ? `${Math.abs(e.streak)} day${Math.abs(e.streak) > 1 ? "s" : ""} of ${e.streak > 0 ? "inflows" : "outflows"} in a row` : "";
-  const launch = { "2024-01-11": 1, "2024-07-23": 1 }[e.since];
   return `<div class="panel metric"><span class="label">${name} ETFs, ${dateShort(e.date)}</span><span class="chg">${streak}</span>
     <span class="val ${tone(e.latest)}">${musd(e.latest)}</span><span class="chg ${tone(e.sum5)}">${musd(e.sum5)} in 5 days</span>
     ${flowBars(e.series)}
-    <p>${e.pct5 != null ? (heavy ? `<b class="bad">Heavy outflow week</b>: this 5-day total is in the bottom ${Math.max(e.pct5, 1).toFixed(0)}% of all weeks since launch. ` : strong ? `<b class="good">Strong week</b>: this 5-day total is in the top ${Math.max(100 - e.pct5, 1).toFixed(0)}% since launch. ` : `This 5-day total sits at the ${e.pct5.toFixed(0)}th percentile of weeks since launch. `) : ""}20 days <b class="${tone(e.sum20)}">${musd(e.sum20)}</b> · ${launch ? "since launch" : "since " + dateShort(e.since)} <b>${musd(e.cum)}</b></p>
+    <p>${e.pct5 != null ? (heavy ? `<b class="bad">Heavy outflow week</b>: this 5-day total is in the bottom ${Math.max(e.pct5, 1).toFixed(0)}% of all weeks since launch. ` : strong ? `<b class="good">Strong week</b>: this 5-day total is in the top ${Math.max(100 - e.pct5, 1).toFixed(0)}% since launch. ` : `This 5-day total sits at the ${e.pct5.toFixed(0)}th percentile of weeks since launch. `) : ""}20 days <b class="${tone(e.sum20)}">${musd(e.sum20)}</b> · since launch (${dateShort(e.since)}) <b>${musd(e.cum)}</b></p>
     ${e.funds_5d?.length ? `<p>5 days by fund: ${e.funds_5d.map(([k, v]) => `<span style="white-space:nowrap">${esc(k)} <span class="${tone(v)}">${musd(v)}</span></span>`).join(" · ")}</p>` : ""}</div>`;
 }
 function etfSection() {
   const E = DATA.etf; if (!E) return "";
   return `<h2>US spot ETF flows</h2>
-    <p class="hint">Money going into (green) or out of (red) the US spot ETFs each trading day, from <a href="https://farside.co.uk/" target="_blank" rel="noopener">Farside Investors</a>. A day is filled in once the funds report, in the US evening. Bars: the last 60 trading days.</p>
-    ${etfCard("Bitcoin", E.BTC)}${etfCard("Ethereum", E.ETH)}${etfCard("Solana", E.SOL)}
+    <p class="hint">Money going into (green) or out of (red) the US spot ETFs each trading day. The newest day comes from <a href="https://farside.co.uk/" target="_blank" rel="noopener">Farside Investors</a> once the funds report, in the US evening; the history and XRP from <a href="https://www.theblock.co/data/etfs" target="_blank" rel="noopener">The Block</a>, which runs a day behind. Bars: the last 60 trading days.</p>
+    ${etfCard("Bitcoin", E.BTC)}${etfCard("Ethereum", E.ETH)}${etfCard("Solana", E.SOL)}${etfCard("XRP", E.XRP)}
     <details class="panel" style="padding:10px 14px"><summary class="sub" style="cursor:pointer">How much to read into it (tested on 2.5 years of flows)</summary>
       <p class="hint" style="margin:8px 0"><b>Flows mostly follow price.</b> A day's Bitcoin ETF flow moves with that day's price (correlation +0.41), and the 3 days before predict it just as well: money chases moves that already happened. A single day's flow says almost nothing about the next days (correlation +0.03 to +0.06, not stable from year to year), and even the biggest inflow days were followed by about-average returns.</p>
-      <p class="hint" style="margin:8px 0"><b>One weak lean:</b> a <b class="bad">heavy outflow week</b> (the bottom 20% of 5-day totals since launch) was followed by weaker two weeks: Bitcoin −1.2% over the next 10 days against +1.0% on average, Ethereum −1.9% against +0.5%. A reason for caution, not a sell signal. Solana's history here is only a few weeks, so it has no percentile yet. XRP ETFs aren't covered: there is no free daily source.</p></details>`;
+      <p class="hint" style="margin:8px 0"><b>One weak lean:</b> a <b class="bad">heavy outflow week</b> (the bottom 20% of 5-day totals since launch) was followed by weaker two weeks: Bitcoin −1.2% over the next 10 days against +1.0% on average, Ethereum −1.9% against +0.5%. A reason for caution, not a sell signal. Solana (since Jul 2025) and XRP (since Nov 2025) have short histories and small funds, so their percentiles say less, and their pattern wasn't tested.</p></details>`;
 }
 function renderFlows() {
   const s = DATA.stablecoins, dom = DATA.dominance, tx = DATA.transfers || [];

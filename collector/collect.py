@@ -411,14 +411,17 @@ def fetch_mvrv():
             "series": [round(r[1], 3) for r in rows[-365:]][::3]}
 
 
-# US spot ETF net flows, US$ millions a day, per fund, from Farside Investors (free, the usual reference; no XRP page).
+# US spot ETF net flows, US$ millions a day, per fund. History from The Block's chart data (per fund, BTC/ETH/SOL/XRP,
+# reachable from GitHub's runners, one day behind); the newest days from Farside Investors' short pages (/btc/, /eth/,
+# /sol/: recent weeks), which post the same evening. Farside's full-history pages answer 403 to GitHub's runners.
 # Tested Oct 2026 (BTC Jan 2024-Sep 2026, ETH Jul 2024-Sep 2026, vs Binance daily closes): flows mostly FOLLOW price
 # (BTC corr with that day's return +0.41, with the 3 days before +0.40); a day's flow barely predicts the next days
 # (corr +0.03-0.06, unstable by year). One weak lean: weeks of heavy outflow (bottom 20% of 5-day sums) were followed by
 # weaker 2 weeks (BTC -1.2% vs +1.0% average over 10 days, ETH -1.9% vs +0.5%; overlapping windows). So: context and a
 # "heavy outflow week" flag, not a timing signal.
-FARSIDE = {"BTC": "https://farside.co.uk/bitcoin-etf-flow-all-data/", "ETH": "https://farside.co.uk/ethereum-etf-flow-all-data/",
-           "SOL": "https://farside.co.uk/sol/"}
+ETF_SOURCES = {"BTC": ("bitcoin", "btc"), "ETH": ("ethereum", "eth"), "SOL": ("solana", "sol"), "XRP": ("xrp", None)}
+BROWSER_UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
+              "Accept": "text/html,application/json;q=0.9,*/*;q=0.8"}
 
 
 def _farside_rows(html):
@@ -466,11 +469,11 @@ def _flow_num(s):
         return None
 
 
-def etf_summary(rows):
-    """Daily totals and per-fund flows -> latest day, 5/20-day sums, streak, cumulative, and how unusual this week is."""
+def farside_days(rows):
+    """Farside table rows -> {date: (total, {fund: US$M})}, skipping days not reported yet."""
     import re
     tickers = max(rows, key=lambda r: sum(1 for c in r if re.fullmatch(r"[A-Z]{2,6}", c)))
-    days = []
+    out = {}
     for r in rows:
         if not r or not re.fullmatch(r"\d{2} \w{3} \d{4}", r[0]):
             continue
@@ -478,7 +481,26 @@ def etf_summary(rows):
         if all(v is None for v in funds.values()):
             continue  # a day not reported yet (Farside shows "-" for each fund and 0.0 as the total)
         total = _flow_num(r[-1])
-        days.append((datetime.strptime(r[0], "%d %b %Y").strftime("%Y-%m-%d"), total if total is not None else sum(v or 0 for v in funds.values()), funds))
+        out[datetime.strptime(r[0], "%d %b %Y").strftime("%Y-%m-%d")] = (total if total is not None else sum(v or 0 for v in funds.values()), funds)
+    return out
+
+
+def theblock_days(name):
+    """The Block's spot ETF flow chart -> {date: (total, {fund: US$M})}. Its points are stamped 12:00 UTC on the day."""
+    d = get_json(f"https://www.theblock.co/api/charts/chart/crypto-markets/{name}-etf/spot-{name}-etf-flows", headers=BROWSER_UA)
+    js = d["chart"]["jsonFile"]
+    js = json.loads(js) if isinstance(js, str) else js
+    funds = {}
+    for fund, s in js["Series"].items():
+        for p in (s["Data"] if isinstance(s, dict) else s):
+            day = datetime.fromtimestamp(p["Timestamp"], timezone.utc).strftime("%Y-%m-%d")
+            funds.setdefault(day, {})[fund] = (p.get("Result") or 0) / 1e6
+    return {day: (sum(f.values()), f) for day, f in funds.items()}
+
+
+def etf_summary(by_day):
+    """{date: (total, funds)} -> latest day, 5/20-day sums, streak, cumulative, and how unusual this week is."""
+    days = [(d, *by_day[d]) for d in sorted(by_day)]
     if not days:
         raise RuntimeError("no flow rows")
     totals = [d[1] for d in days]
@@ -503,18 +525,32 @@ def etf_summary(rows):
             "series": [[d[0], r2(d[1], 1)] for d in days[-60:]]}
 
 
-@module("ETF flows (Farside)")
+@module("ETF flows")
 def fetch_etf_flows():
-    out = {}
-    for asset, url in FARSIDE.items():
+    out, notes = {}, []
+    for asset, (block, farside) in ETF_SOURCES.items():
+        days, src = {}, []
         try:
-            r = SESSION.get(url, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36"}, timeout=40)
-            r.raise_for_status()
-            out[asset] = etf_summary(_farside_rows(r.text))
-        except Exception as e:  # noqa: BLE001  one page failing keeps the others
-            log(f"ETF flows {asset}: {e}")
+            days.update(theblock_days(block))
+            src.append("The Block")
+        except Exception as e:  # noqa: BLE001  either source alone still gives a usable view
+            notes.append(f"{asset} The Block: {str(e)[:80]}")
+        if farside:
+            try:
+                r = SESSION.get(f"https://farside.co.uk/{farside}/", headers=BROWSER_UA, timeout=40)
+                r.raise_for_status()
+                recent = farside_days(_farside_rows(r.text))
+                if recent:
+                    days.update(recent)  # same numbers where they overlap; Farside has the newest day first
+                    src.append("Farside")
+            except Exception as e:  # noqa: BLE001
+                notes.append(f"{asset} Farside: {str(e)[:80]}")
+        if days:
+            out[asset] = {**etf_summary(days), "sources": src}
+    for n in notes:
+        log(f"ETF flows: {n}")
     if not out:
-        raise RuntimeError("no Farside page could be read")
+        raise RuntimeError("; ".join(notes)[:280] or "no ETF data")
     return {"fetched": NOW.isoformat(timespec="seconds"), **out}
 
 
