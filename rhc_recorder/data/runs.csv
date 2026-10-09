@@ -85,3 +85,4 @@ run_utc,kind,duration_s,calls_geckoterminal,calls_dexscreener,calls_rpc,new_pool
 2026-10-09T12:37:18Z,discover,114,10,12,0,190,77,1557,0,0,,discovery gap: pools launched 2026-10-09T11:32:29Z to 2026-10-09T12:07:49Z were past the page limit,
 2026-10-09T13:37:18Z,discover,116,10,15,0,181,170,1612,0,0,,,
 2026-10-09T14:19:22Z,discover,40,4,7,0,70,67,1632,0,0,,,
+2026-10-09T15:37:19Z,snapshot,299,13,78,44,169,167,1504,1,1,1791564902,discovery gap: pools launched 2026-10-09T13:29:16Z to 2026-10-09T14:58:05Z were past the page limit,
