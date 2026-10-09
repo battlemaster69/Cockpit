@@ -17,3 +17,15 @@ token_address,checked_utc,src_verified,has_mint,has_owner,can_pause,can_blacklis
 0xb4ebf16f805c3e307242728c1aa3c1ee07e965f7,2026-10-08T19:37:15Z,,False,False,False,False,False,False,281,12.37,uniswap-v4-robinhood,10,True,
 0x109b383a42305dc48855b9b791c202002c6b391f,2026-10-08T23:37:16Z,,False,False,False,False,False,False,698,23.2,uniswap-v4-robinhood,15,True,
 0x22a68ae074150397c42d968ec050cd1ff3501a51,2026-10-08T23:37:16Z,,False,False,False,False,False,False,7794,0.0,uniswap-v3-robinhood,23,True,
+0x2e0847e8910a9732eb3fb1bb4b70a580adad4fe3,2026-10-09T03:37:13Z,,False,False,False,False,False,False,4988,5.38,uniswap-v4-robinhood,15,True,partial_history
+0x378a50eac56f45fb74e4ce7f1962dbca33515c14,2026-10-09T03:37:13Z,,True,True,False,False,False,False,570,18.56,ramses-dlmm-robinhood,8,True,
+0xaa07f927b255756e947eafb2778db2c3fc9a28a3,2026-10-09T03:37:13Z,,False,True,False,False,False,False,11,40.0,uniswap-v4-robinhood,0,False,
+0x8474b542820f76b090bf58592febbc622a7200b2,2026-10-09T03:37:13Z,,False,False,False,False,False,False,288,16.05,pons-v2-dex,10,True,
+0xc60beb77c5fbaa40b14e7aaf90d5c4b34e8ab006,2026-10-09T03:37:13Z,,False,True,False,False,False,False,23,40.0,uniswap-v4-robinhood,0,False,
+0xf13f2d9f443dc218582f7e8762a2f9afb5a61e18,2026-10-09T03:37:13Z,,False,True,False,False,False,False,5,0.03,bankr-robinhood,0,False,
+0xd060f448de7bccb6e54b0cb8d5bc871c8d339eec,2026-10-09T03:37:13Z,,False,True,False,False,False,False,30,37.0,uniswap-v4-robinhood,1,False,
+0x2caf693f29504c87b8c90cbe7d6dddf0e1a6e04f,2026-10-09T03:37:13Z,,False,False,False,False,False,False,238,19.34,pons-v2-dex,6,True,no_mint_event
+0xe1243842e091f073841fc1ac9527ea7e64f168bd,2026-10-09T03:37:13Z,,False,True,False,False,False,False,20,40.0,uniswap-v4-robinhood,0,False,
+0x9ad56c5f95208be3c6feb7da5accb48ec1873f5c,2026-10-09T03:37:13Z,,False,True,False,False,False,False,22,1.79,uniswap-v4-robinhood,0,False,
+0xbd9fceaf34ce6fccf225cc17a17bf868924b2480,2026-10-09T03:37:13Z,,False,False,False,False,False,False,563,26.45,uniswap-v4-robinhood,15,True,
+0xbdc00f2b4bf0afa7dfc8fe698b9fd4e38abbc546,2026-10-09T03:37:13Z,,False,False,False,False,False,False,212,26.15,uniswap-v4-robinhood,9,True,
