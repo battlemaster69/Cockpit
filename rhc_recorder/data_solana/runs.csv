@@ -1,0 +1,2 @@
+run_utc,kind,duration_s,calls_geckoterminal,calls_dexscreener,calls_rpc,new_pools,tokens_seen,tracked,new_passers,new_controls,random_seed,stopped,errors
+2026-10-09T13:17:01Z,snapshot,156,14,5,0,195,234,13,0,0,1791551922,sample: launches 2026-10-09T12:59:04Z to 2026-10-09T13:09:34Z,
