@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """
-Robinhood Chain survivor recorder: one run, then exit. A data recorder, not a trader: no entries, exits or orders.
+Survivor recorder for Robinhood Chain (default) and Solana: one run, then exit. A data recorder, not a trader: no
+entries, exits or orders.
 
-Every run discovers new pools (GeckoTerminal keeps only the newest ~200, about an hour on this chain). A run at
-least `snapshot.every_hours` after the last snapshot also catches up on missed tokens, snapshots every tracked token,
-labels the survivor filters, assigns passers and matched controls, and runs the RPC checks on them.
+Every run discovers new pools from GeckoTerminal. A run at least `snapshot.every_hours` after the last snapshot also
+catches up on missed tokens, snapshots every tracked token, labels the survivor filters, assigns passers and matched
+controls, and checks them (Robinhood: the chain's RPC; Solana: RugCheck). Same filters on both chains.
+Robinhood records every launch; Solana (~26,600 launches a day) records a time sample and re-checks it at fixed ages.
 Spec: the "Robinhood Chain Survivor Recorder — Spec" doc (Claude Docs).
 
-    python rhc_recorder/run.py              # one run (snapshots when due)
-    python rhc_recorder/run.py --snapshot   # force a snapshot run
-    python rhc_recorder/run.py --dry-run    # print what would be recorded, write nothing
+    python rhc_recorder/run.py                    # one Robinhood run (snapshots when due)
+    python rhc_recorder/run.py --chain solana     # one Solana run
+    python rhc_recorder/run.py --snapshot         # force a snapshot run
+    python rhc_recorder/run.py --dry-run          # print what would be recorded, write nothing
 """
 
 import os
@@ -24,6 +27,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import board  # noqa: E402
 import checks  # noqa: E402
+import checks_solana  # noqa: E402
 import filters  # noqa: E402
 import store  # noqa: E402
 from net import Net, SourceStopped  # noqa: E402
@@ -32,10 +36,19 @@ from sources import geckoterminal as gt  # noqa: E402
 from sources.rpc import RPC  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
-CFG = yaml.safe_load((HERE / "config.yaml").read_text(encoding="utf-8"))
-KNOWN = yaml.safe_load((HERE / "known_addresses.yaml").read_text(encoding="utf-8"))
-SKIP_TOKENS = {a.lower() for a in KNOWN.get("skip_tokens") or {}}
-NON_HOLDERS = {a.lower() for a in KNOWN.get("non_holders") or {}}
+CHAIN = sys.argv[sys.argv.index("--chain") + 1] if "--chain" in sys.argv else "robinhood"
+# chain -> (config, known addresses, data folder, dashboard file)
+PROFILES = {"robinhood": ("config.yaml", "known_addresses.yaml", "data", "alpha.json"),
+            "solana": ("config_solana.yaml", "known_addresses_solana.yaml", "data_solana", "alpha_solana.json")}
+_cfg, _known, _data, _board = PROFILES[CHAIN]
+CFG = yaml.safe_load((HERE / _cfg).read_text(encoding="utf-8"))
+CFG["board_file"] = _board
+KNOWN = yaml.safe_load((HERE / _known).read_text(encoding="utf-8"))
+if not os.environ.get("RHC_DATA"):
+    store.DATA = HERE / _data
+norm = lambda a: gt.norm(a, CHAIN)  # noqa: E731  Solana addresses are case-sensitive
+SKIP_TOKENS = {norm(a) for a in KNOWN.get("skip_tokens") or {}}
+NON_HOLDERS = {norm(a) for a in KNOWN.get("non_holders") or {}}
 DRY = "--dry-run" in sys.argv
 NOW = time.time()
 RUN_UTC = datetime.fromtimestamp(NOW, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -74,14 +87,20 @@ def new_token(pool):
     return None
 
 
-def admit(net, state, cands, found_by, log_all=True):
+def admit(net, state, cands, found_by, log_all=True, price=True):
     """Price candidate tokens and track those above the floor. Each token is logged to the day's universe file when
-    first seen; a retry or re-price (log_all=False) logs it again only if it now joins the tracked set."""
+    first seen; a retry or re-price (log_all=False) logs it again only if it now joins the tracked set. With
+    price=False (Solana discovery) tokens are only logged, to be priced at the re-checks."""
     d, f = CFG["discovery"], CFG["filters"]
     known = set(state["tracked"]) | set(state["below"]) | set(state["skip"])
     cands = {a: c for a, c in cands.items() if a not in known}
     if not cands:
         return []
+    if not price:  # compact rows: ~14,000 curve tokens a day on Solana
+        rows = [{"token_address": a, "symbol": (c["symbol"] or "")[:12], "dex": c["dex"], "pool_created_utc": utc(c["created"]),
+                 "first_seen_utc": RUN_UTC, "found_by": found_by, "tracked": False} for a, c in cands.items()]
+        store.append(store.DATA / "universe" / f"{DAY}.csv", store.UNIVERSE, rows, DRY)
+        return rows
     priced = guarded("dexscreener (admission)", ds.tokens, net, CH["ds_chain"], list(cands), default={}) or {}
     rows = []
     for a, c in cands.items():
@@ -100,7 +119,7 @@ def admit(net, state, cands, found_by, log_all=True):
             late = age > 1
             state["tracked"][a] = {"symbol": rows[-1]["symbol"], "created": created, "dex": c["dex"], "pair": s["pair"],
                                    "peak": s["price"] or 0, "peak_source": "candles_pending" if late else "recorder", "misses": 0}
-        elif age < d["recheck_below_floor_days"]:
+        elif d.get("below_state", True) and age < d["recheck_below_floor_days"]:
             tries = c.get("tries", 0) + (0 if s else 1)
             # not on DexScreener yet: priced again on the next runs, then dropped (2,400 never-listed launchpad tokens
             # were re-priced every run, 2026-10-07, pushing DexScreener calls from 57 toward the 300 cap)
@@ -135,7 +154,11 @@ def discover(net, state):
         newest, oldest_read = max(newest, max(times)), min(times)
         if min(times) <= cursor:
             break
-    if cursor and oldest_read and oldest_read > cursor:
+    d = CFG["discovery"]
+    if d.get("mode") == "sample":
+        if oldest_read:  # the sampled stretch of launch time, for the coverage figure on the dashboard
+            NOTES.append(f"sample: launches {utc(oldest_read)} to {utc(newest)}")
+    elif cursor and oldest_read and oldest_read > cursor:
         NOTES.append(f"discovery gap: pools launched {utc(cursor)} to {utc(oldest_read)} were past the page limit")
     state["newest_pool_ts"] = newest
     # tokens an earlier run saw before DexScreener had indexed them: price them again (before this run's new ones)
@@ -143,8 +166,45 @@ def discover(net, state):
     for a in unpriced:
         state["below"].pop(a)
     rows = admit(net, state, unpriced, "new_pools_retry", log_all=False) if unpriced else []
-    rows += admit(net, state, cands, "new_pools")
+    if d.get("price_at_discovery", True):
+        rows += admit(net, state, cands, "new_pools")
+    else:
+        # Solana: a launchpad bonding-curve token shows $0 liquidity until it graduates, so it is only logged and priced
+        # at the re-checks. A pool on a regular exchange (often a graduation) has real liquidity: priced now.
+        curve = set(d.get("curve_dexes") or [])
+        rows += admit(net, state, {a: c for a, c in cands.items() if c["dex"] not in curve}, "new_pools")
+        rows += admit(net, state, {a: c for a, c in cands.items() if c["dex"] in curve}, "new_pools", price=False)
+    if d.get("recheck_hours"):
+        rows += recheck_from_files(net, state)
     return n_new, rows
+
+
+def recheck_from_files(net, state):
+    """Solana: re-price the sampled launches when they reach each re-check age (24h, 48h, 4d, 7d), reading them back
+    from the universe files; one that now holds the liquidity floor joins the tracked set. Each run covers the launch
+    times between its own re-check point and the previous run's, so every sampled token is re-checked once per age."""
+    last = max(state.get("last_run") or 0, NOW - 2 * 3600)  # a long gap re-checks at most 2 hours back per age
+    due = {}
+    for h in CFG["discovery"]["recheck_hours"]:
+        lo, hi = last - h * 3600, NOW - h * 3600
+        days = {datetime.fromtimestamp(t, timezone.utc).strftime("%Y-%m-%d") for t in (lo, hi)}
+        for day in sorted(days):
+            for x in store.read(store.DATA / "universe" / f"{day}.csv"):
+                if x.get("found_by") != "new_pools" or x.get("tracked") == "True":
+                    continue
+                try:
+                    seen = datetime.fromisoformat(x["first_seen_utc"].replace("Z", "+00:00")).timestamp()
+                    created = datetime.fromisoformat(x["pool_created_utc"].replace("Z", "+00:00")).timestamp()
+                except (KeyError, ValueError):
+                    continue
+                if lo < seen <= hi:
+                    due.setdefault(x["token_address"], {"address": x["token_address"], "symbol": x["symbol"], "name": "",
+                                                        "created": created, "dex": x["dex"], "pool": x.get("pair_address") or "", "age_h": h})
+    rows = []
+    for h in sorted({c["age_h"] for c in due.values()}):
+        batch = {a: c for a, c in due.items() if c["age_h"] == h}
+        rows += admit(net, state, batch, f"recheck_{h}h", log_all=False)
+    return rows
 
 
 def catch_up(net, state):
@@ -160,6 +220,8 @@ def catch_up(net, state):
                 cands.setdefault(t["address"], {**t, "created": p["created"].timestamp(), "dex": p["dex"], "pool": p["pool"]})
     rows = admit(net, state, cands, "top_volume")
     d = CFG["discovery"]
+    if not d.get("below_state", True):
+        return rows
     for a, b in list(state["below"].items()):
         if (NOW - b["created"]) / 86400 > d["recheck_below_floor_days"]:
             del state["below"][a]
@@ -179,8 +241,11 @@ def snapshot(net, state):
     priced = guarded("dexscreener (snapshot)", ds.tokens, net, CH["ds_chain"], list(tracked), default=None)
     if priced is None:
         return []
-    # late-found tokens: their peak comes from GeckoTerminal's daily candles, a few per run
-    for a in [a for a, t in tracked.items() if t["peak_source"] == "candles_pending"][:sn["peak_from_candles_max"]]:
+    # late-found tokens: their peak comes from GeckoTerminal's daily candles, a few per run, those the filters are
+    # about to judge (aged 2-10 days) first
+    pending = sorted([a for a, t in tracked.items() if t["peak_source"] == "candles_pending"],
+                     key=lambda a: not filters.in_band((NOW - tracked[a]["created"]) / 86400, f))
+    for a in pending[:sn["peak_from_candles_max"]]:
         hi = guarded("geckoterminal candles", gt.daily_high, net, CH["gt_network"], tracked[a]["pair"], default=None)
         if hi:
             tracked[a]["peak"], tracked[a]["peak_source"] = max(tracked[a]["peak"], hi), "candles"
@@ -257,12 +322,18 @@ def run_checks(net, state):
     queue = state["check_queue"]
     if not queue:
         return 0
-    rpc = RPC(net, CH["rpc_url"])
-    seeds = {x["wallet"].lower() for x in store.read(store.DATA / "seed_wallets.csv") if x.get("wallet")}
+    solana = cc.get("kind") == "rugcheck"
+    rpc = None if solana else RPC(net, CH["rpc_url"])
+    seeds = set() if solana else {x["wallet"].lower() for x in store.read(store.DATA / "seed_wallets.csv") if x.get("wallet")}
     done, out = 0, []
     for a in list(queue)[:cc["max_tokens_per_run"]]:
         t = queue[a]
         try:
+            if solana:
+                out.append({"token_address": a, "checked_utc": RUN_UTC, **checks_solana.report(net, a, t.get("dex", ""))})
+                queue.pop(a)
+                done += 1
+                continue
             row = {"token_address": a, "checked_utc": RUN_UTC, "src_verified": "", "launchpad": t.get("dex", "")}
             row.update(checks.contract_flags(rpc, a))
             if row.get("checks_note") != "no contract code":
@@ -282,7 +353,7 @@ def run_checks(net, state):
             if queue[a]["tries"] >= cc["max_tries"]:
                 out.append({"token_address": a, "checked_utc": RUN_UTC, "checks_note": f"failed: {str(e)[:80]}"})
                 queue.pop(a)
-    store.append(store.DATA / "checks.csv", ("token_address", "checked_utc") + checks.FIELDS, out, DRY)
+    store.append(store.DATA / "checks.csv", ("token_address", "checked_utc") + (checks_solana.FIELDS if solana else checks.FIELDS), out, DRY)
     return done
 
 
@@ -315,16 +386,17 @@ def main():
         n_checked = run_checks(net, state) if state["check_queue"] else 0
         state["last_run"] = NOW
         run = {"run_utc": RUN_UTC, "kind": "snapshot" if snap_due else "discover", "duration_s": round(time.time() - NOW),
-               "calls_geckoterminal": net.calls["geckoterminal"], "calls_dexscreener": net.calls["dexscreener"], "calls_rpc": net.calls["rpc"],
+               "calls_geckoterminal": net.calls["geckoterminal"], "calls_dexscreener": net.calls["dexscreener"],
+               "calls_rpc": net.calls.get("rpc", 0) + net.calls.get("rugcheck", 0),  # the checks source: RPC or RugCheck
                "new_pools": n_new, "tokens_seen": len(disc), "tracked": len(state["tracked"]),
                "new_passers": sum(x["cohort"] == "passer" for x in cohort), "new_controls": sum(x["cohort"] == "control" for x in cohort),
                "random_seed": seed, "stopped": "; ".join(filter(None, [net.stopped_note()] + NOTES)), "errors": " | ".join(ERRORS)[:900]}
         store.append(store.DATA / "runs.csv", store.RUNS, [run], DRY)
         guarded("board", board.build, net, state, CFG, NOW, RUN_UTC, DRY, ERRORS)  # docs/alpha.json for the dashboard
         store.save_state(state, DRY)
-        print(f"{RUN_UTC} {run['kind']}: {n_new} new pools, {len(disc)} tokens priced ({sum(1 for x in disc if x['tracked'])} tracked), "
+        print(f"{RUN_UTC} {CHAIN} {run['kind']}: {n_new} new pools, {len(disc)} tokens priced ({sum(1 for x in disc if x['tracked'])} tracked), "
               f"{len(state['tracked'])} tracked in all, {len(rows)} snapshot rows, {len(cohort)} cohort rows, {n_checked} checked; "
-              f"calls GT {net.calls['geckoterminal']} DS {net.calls['dexscreener']} RPC {net.calls['rpc']}; {run['duration_s']}s"
+              f"calls GT {net.calls['geckoterminal']} DS {net.calls['dexscreener']} checks {run['calls_rpc']}; {run['duration_s']}s"
               + (f"; stopped: {run['stopped']}" if run["stopped"] else "") + (f"; errors: {len(ERRORS)}" if ERRORS else ""))
         for e in ERRORS:
             print("  -", e)

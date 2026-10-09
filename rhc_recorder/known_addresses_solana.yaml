@@ -1,0 +1,11 @@
+# Solana. Addresses are case-sensitive (base58): keep them exactly as written.
+
+# Never treated as a new token: what pools are quoted in.
+skip_tokens:
+  "So11111111111111111111111111111111111111112": wrapped SOL
+  "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": USDC
+  "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB": USDT
+  "USD1ttGY1N17NEEHLmELoaybftRBUSErhqYiQzvEmuB": USD1
+
+non_holders: {}
+seed_tokens: {}

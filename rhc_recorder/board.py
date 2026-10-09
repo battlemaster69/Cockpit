@@ -21,10 +21,11 @@ HORIZONS = (3, 7, 14)
 NAMES = {"liquidity": "liquidity", "volume": "24h volume", "turnover": "turnover", "txns": "24h trades", "drawdown": "drawdown"}
 
 
-def _path():
+def _path(cfg):
+    name = cfg.get("board_file", "alpha.json")  # alpha.json (Robinhood), alpha_solana.json
     if os.environ.get("RHC_DATA"):  # tests write beside their scratch data
-        return store.DATA / "alpha.json"
-    return Path(__file__).resolve().parent.parent / "docs" / "alpha.json"
+        return store.DATA / name
+    return Path(__file__).resolve().parent.parent / "docs" / name
 
 
 def _iso(ts):
@@ -101,6 +102,12 @@ def build(net, state, cfg, now, run_utc, dry=False, errors=None):
         if not k:
             return None
         b = lambda v: v == "True"  # noqa: E731
+        if "mint_authority" in k:  # Solana (RugCheck)
+            return {"chain": "solana", "mint_auth": b(k["mint_authority"]), "freeze_auth": b(k["freeze_authority"]),
+                    "lp_locked": _num(k["lp_locked_pct"]), "holders": _num(k["holders"]), "top10": _num(k["top10_pct"]),
+                    "insiders": _num(k["insiders_top20"]), "insider_net": _num(k["insider_network"]), "t22": k["token2022_risk"],
+                    "score": _num(k["rugcheck_score"]), "creator": _num(k["creator_pct"]), "rugged": b(k["rugged"]),
+                    "launchpad": k["launchpad"], "danger": k["danger_risks"], "note": k["checks_note"]}
         return {"mint": b(k["has_mint"]), "owner": b(k["has_owner"]), "pause": b(k["can_pause"]), "blacklist": b(k["can_blacklist"]),
                 "fee": b(k["can_set_fee"]), "proxy": b(k["is_proxy"]), "holders": _num(k["holders"]), "top20": _num(k["top20_pct"]),
                 "seeds": _num(k["seed_overlap"]), "seed_flag": b(k["overlap_flag"]), "launchpad": k["launchpad"], "note": k["checks_note"]}
@@ -173,18 +180,29 @@ def build(net, state, cfg, now, run_utc, dry=False, errors=None):
             gap_min += (_ts(b) - _ts(a)) / 60
         except (IndexError, ValueError):
             pass
+    sampled = 0  # Solana: minutes of launch time each run's sample covered
+    for r in day:
+        for part in r["stopped"].split("; "):
+            if part.startswith("sample: launches "):
+                try:
+                    a, b = part[len("sample: launches "):].split(" to ")
+                    sampled += (_ts(b) - _ts(a)) / 60
+                except ValueError:
+                    pass
     health = {"last_run": run_utc, "runs_24h": len(day), "new_pools_24h": sum(int(r["new_pools"] or 0) for r in day),
               "tracked": len(tracked), "gap_runs_24h": len(gaps), "gap_minutes_24h": round(gap_min),
+              "sampled_pct_24h": round(sampled / 1440 * 100) if sampled else None,
               "last_snapshot": _iso(state["last_snapshot"]) if state.get("last_snapshot") else None,
               "errors_24h": sum(1 for r in day if r["errors"])}
 
-    out = {"generated_at": _iso(now), "settings": {"filters": f, "verdict_passers": 30, "verdict_days": 7},
+    out = {"generated_at": _iso(now), "chain": cfg["chain"].get("name", "robinhood"),
+           "settings": {"filters": f, "verdict_passers": 30, "verdict_days": 7},
            "summary": {k: summary(v) for k, v in groups.items()}, "cohort": board, "passing": passing, "close": close[:25],
            "funnel": funnel, "health": health}
     if dry:
         print(f"[dry run] alpha.json: {len(passing)} passing, {len(close)} close, {len(board)} cohort rows")
         return out
-    path = _path()
+    path = _path(cfg)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(out, separators=(",", ":"), default=lambda o: None), encoding="utf-8")

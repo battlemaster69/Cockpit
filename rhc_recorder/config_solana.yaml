@@ -1,0 +1,63 @@
+# Solana survivor recorder (run.py --chain solana). Same six filters and thresholds as Robinhood Chain (config.yaml),
+# so both chains can be compared in one analysis. Filters LABEL tokens; they never decide what gets recorded.
+#
+# Discovery differs: Solana sees ~26,600 new pools a day (2026-10-09, mostly pump.fun) and GeckoTerminal lists only
+# the newest 200 (5-11 minutes), so each run records a SAMPLE: whatever launched in those minutes (runs every 15 min:
+# roughly a third of launch time, a random time sample). Bonding-curve tokens show $0 liquidity until they graduate, so
+# each sampled curve token is re-checked at fixed ages and tracked once it holds $5,000; graduation pools are priced
+# at once, so a graduate has two chances to be caught.
+
+chain:
+  name: solana
+  gt_network: solana
+  ds_chain: solana
+
+discovery:
+  mode: sample                  # no "launches missed" notes: the sample is the design; its time windows are logged
+  new_pool_pages_max: 10
+  price_at_discovery: false     # launchpad curve tokens show $0 liquidity: priced at the re-checks instead...
+  curve_dexes: [pump-fun, meteora-dbc, raydium-launchlab, boop-fun, moonit, moonshot, heaven, token-mill, daos-fun,
+                virtuals-solana, wavebreak, zora, printr-v2, clanker-solana, bags-fm, believe]
+                                # ...while a new pool on any other exchange (PumpSwap, Raydium, Meteora: often a
+                                # graduation) has real liquidity and is priced at once
+  below_state: false            # no per-token memory of below-floor tokens (9,000+ a day): the universe files are it
+  recheck_hours: [24, 48, 96, 168]
+  top_volume_pages: 3           # catch-up on snapshot runs: big tokens launched outside the sample windows
+  track_liquidity_usd_min: 5000
+  max_track_age_days: 30
+  recheck_below_floor_days: 3   # (unused with below_state: false)
+  recheck_every_hours: 24
+  unlisted_retries: 3
+
+snapshot:
+  every_hours: 3.5
+  peak_from_candles_max: 10     # tracked tokens are found days after launch: their peak comes from daily candles
+  missing_runs_dead: 3
+
+filters:
+  age_days_min: 2
+  age_days_max: 10
+  liquidity_usd_min: 50000
+  volume_24h_usd_min: 100000
+  turnover_min: 0.5
+  turnover_max: 20
+  txns_24h_min: 300
+  drawdown_max_pct: 60
+
+cohort:
+  control_liquidity_usd_min: 5000
+  dead_liquidity_usd: 2000
+  random_seed: 101
+
+checks:
+  kind: rugcheck                # RugCheck's free report; public Solana RPC refused holder queries (429)
+  max_tokens_per_run: 12
+  max_tries: 3
+
+net:
+  min_gap_s: {geckoterminal: 12, dexscreener: 0.5, rpc: 1.0, rugcheck: 2.0}
+  max_calls_per_run: {geckoterminal: 25, dexscreener: 300, rpc: 0, rugcheck: 40}
+  max_retries: 3
+  backoff_s: [5, 15, 45]
+  wait_after_429_s: 30
+  stop_after_429s: 3

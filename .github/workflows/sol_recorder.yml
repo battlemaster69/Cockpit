@@ -1,0 +1,67 @@
+name: Solana recorder
+
+on:
+  schedule:
+    - cron: "2,17,32,47 * * * *"   # best-effort backup; a cron-job.org timer dispatches this every 15 min with auto=true
+    # every 15 min: Solana launches ~26,600 pools a day and GeckoTerminal lists only the newest 200 (5-11 minutes),
+    # so each run records a sample; more runs = a bigger sample
+  workflow_dispatch:
+    inputs:
+      auto:
+        description: "Started by a timer: skip if the last run is under 10 minutes old"
+        type: boolean
+        default: false
+      snapshot:
+        description: "Force a snapshot run"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sol-recorder
+  cancel-in-progress: false
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Skip if the last run is fresh
+        id: gate
+        if: github.event_name == 'schedule' || inputs.auto
+        run: |
+          age=$(python3 -c "import json,time; print(int(time.time() - json.load(open('rhc_recorder/data_solana/state.json'))['last_run']))" 2>/dev/null || echo 999999)
+          echo "last run ${age}s ago"
+          if [ "$age" -lt 600 ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/setup-python@v6
+        if: steps.gate.outputs.skip != 'true'
+        with:
+          python-version: "3.12"
+
+      - run: pip install "requests>=2.31" "pyyaml>=6"
+        if: steps.gate.outputs.skip != 'true'
+
+      - name: Record
+        if: steps.gate.outputs.skip != 'true'
+        run: python rhc_recorder/run.py --chain solana ${{ inputs.snapshot && '--snapshot' || '' }}
+
+      - name: Save results
+        if: always() && steps.gate.outputs.skip != 'true'
+        run: |
+          git config user.name "cockpit-bot"
+          git config user.email "cockpit-bot@users.noreply.github.com"
+          git add rhc_recorder/data_solana/ docs/alpha_solana.json 2>/dev/null || true
+          git diff --cached --quiet && exit 0
+          git commit -m "sol: $(date -u +'%Y-%m-%d %H:%M')"
+          for i in 1 2 3 4; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep 7
+          done
+          exit 1

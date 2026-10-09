@@ -1,4 +1,15 @@
-# Robinhood Chain survivor recorder
+# Survivor recorder: Robinhood Chain and Solana
+
+`python rhc_recorder/run.py` records Robinhood Chain (data in `data/`, dashboard file `docs/alpha.json`);
+`python rhc_recorder/run.py --chain solana` records Solana (`config_solana.yaml`, data in `data_solana/`,
+`docs/alpha_solana.json`, workflow `sol_recorder.yml` every 15 minutes). Same six filters on both chains. Solana sees
+~26,600 launches a day, more than GeckoTerminal can list, so it records a time sample of launches, re-checks each at
+about 1, 2, 4 and 7 days old (launchpad curve tokens have no liquidity until they graduate), prices new pools on
+regular exchanges (often graduations) at once, and checks passers and controls with RugCheck instead of an RPC. Its
+timer on cron-job.org: every 15 minutes, `.../actions/workflows/sol_recorder.yml/dispatches`, body
+`{"ref":"main","inputs":{"auto":"true"}}`.
+
+## Robinhood Chain
 
 A data recorder, not a trader. It records every Robinhood Chain token that reaches $5,000 of liquidity, labels the
 ones that are 2 to 10 days old and still healthy (the survivor filters), matches each passer with a random control,

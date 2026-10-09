@@ -14,6 +14,11 @@ def _num(x):
         return None
 
 
+def norm(address, chain):
+    """EVM addresses are case-insensitive (kept lower-case); Solana's base58 addresses are case-sensitive (kept as is)."""
+    return address if chain == "solana" else address.lower()
+
+
 def _pools(net, network, path, page, **params):
     d = net.request("geckoterminal", "GET", f"{BASE}/networks/{network}/{path}",
                     params={"page": page, "include": "base_token,quote_token,dex", **params}, headers=HDR) or {}
@@ -25,8 +30,8 @@ def _pools(net, network, path, page, **params):
         def tok(side):
             tid = rel[side]["data"]["id"]
             t = tokens.get(tid, {})
-            return {"address": tid.split("_", 1)[1].lower(), "symbol": t.get("symbol") or "", "name": t.get("name") or ""}
-        out.append({"pool": a["address"].lower(), "created": datetime.fromisoformat(a["pool_created_at"].replace("Z", "+00:00")),
+            return {"address": norm(tid.split("_", 1)[1], network), "symbol": t.get("symbol") or "", "name": t.get("name") or ""}
+        out.append({"pool": norm(a["address"], network), "created": datetime.fromisoformat(a["pool_created_at"].replace("Z", "+00:00")),
                     "dex": rel["dex"]["data"]["id"], "liquidity": _num(a.get("reserve_in_usd")),
                     "base": tok("base_token"), "quote": tok("quote_token")})
     return out
