@@ -1,0 +1,3 @@
+token_address,checked_utc,mint_authority,freeze_authority,lp_locked_pct,holders,top10_pct,insiders_top20,insider_network,token2022_risk,rugcheck_score,creator_pct,rugged,launchpad,danger_risks,checks_note
+6FhVPctYg363pQbs4iSvqyHe2cJzfsvFD96gePy6pump,2026-10-10T15:03:35Z,False,False,100,2345,24.3,0,0,token-2022,1,1.58,False,"{'name': 'Pump.Fun', 'logo': 'https://api.rugcheck.xyz/public/logos/pump_fun.png', 'url': 'https://x.com/pumpfun', 'platform': 'pump_fun'}",,
+4HQ7U4yHgrVmnpymjtWCWwtNqhpJLn6ZKiZFxotQuz2Y,2026-10-10T15:03:35Z,False,False,100,122,21.58,0,50,,56,3.58,False,"{'name': 'Meteora', 'logo': 'https://api.rugcheck.xyz/public/logos/meteora.png', 'url': 'https://launch.meteora.ag', 'platform': 'meteora_dbc'}",Low Liquidity,

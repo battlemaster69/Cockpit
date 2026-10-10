@@ -1,0 +1,3 @@
+token_address,symbol,cohort,assigned_utc,age_days_at_assign,price_at_assign,liquidity_at_assign,matched_passer,peak_source,mechanism
+6FhVPctYg363pQbs4iSvqyHe2cJzfsvFD96gePy6pump,EXFIL,passer,2026-10-10T15:03:35Z,7.25,0.000489,65884,,candles,
+4HQ7U4yHgrVmnpymjtWCWwtNqhpJLn6ZKiZFxotQuz2Y,ՍЅᎠТ,control,2026-10-10T15:03:35Z,4.09,0.9131,517419,6FhVPctYg363pQbs4iSvqyHe2cJzfsvFD96gePy6pump,candles,
