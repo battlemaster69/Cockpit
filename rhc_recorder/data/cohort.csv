@@ -49,3 +49,5 @@ token_address,symbol,cohort,assigned_utc,age_days_at_assign,price_at_assign,liqu
 0xf53160ab6331d156fd543e774599eda35644b3d2,DERVISH,control,2026-10-11T03:37:17Z,3.46,2.929e-06,5015,0xe13d47f19e0347701aa6fe3bf59fc43d244725d8,recorder,
 0xf0caa7b1fc23c58bcc989ae9ddaf56aae0a24d9e,JEANPHIL,passer,2026-10-11T11:37:18Z,2.16,0.0002781,52728,,recorder,
 0x614f458c0a0de70ec7fc84380440e422465a5ca0,888,control,2026-10-11T11:37:18Z,2.49,1.091e-05,9992,0xf0caa7b1fc23c58bcc989ae9ddaf56aae0a24d9e,recorder,
+0xc9675fe679c7d4e1b94416f66d61c96127eb964a,GIGATENEV,passer,2026-10-11T19:37:18Z,2.07,0.001374,91411,,recorder,
+0x242edd4e4cd50b13b46d950911beef96d0f9cebd,DAEMON,control,2026-10-11T19:37:18Z,2.18,7.854e-05,26120,0xc9675fe679c7d4e1b94416f66d61c96127eb964a,recorder,
