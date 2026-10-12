@@ -57,3 +57,5 @@ token_address,symbol,cohort,assigned_utc,age_days_at_assign,price_at_assign,liqu
 0x100765a16f42636bd84ee1e86bc5107b84bcdba3,CHOP,control,2026-10-12T07:37:17Z,4.77,3.151e-06,103061,0x4898891604a8d11798af0551766d7e100e5e1ede,recorder,
 0xa8b213a5cd199f6bf14a6a82071edfc179f5d3bd,CLAUDIA,passer,2026-10-12T11:37:15Z,2.03,0.0002301,127562,,recorder,
 0x2c8eb5e6f914dcfa3315f44eda130baf80977c01,KNOX,control,2026-10-12T11:37:15Z,2.71,3.05e-06,5148,0xa8b213a5cd199f6bf14a6a82071edfc179f5d3bd,recorder,
+0x000050e18ffa3f8f7ad170eb9cef160eb3ed1111,TORCH,passer,2026-10-12T19:37:16Z,2.05,0.003097,994422,,recorder,
+0xf1cc0a4feed884a4490a1d8db943c0a92bd83347,ARTEX,control,2026-10-12T19:37:16Z,4.18,1.619e-05,11825,0x000050e18ffa3f8f7ad170eb9cef160eb3ed1111,recorder,
