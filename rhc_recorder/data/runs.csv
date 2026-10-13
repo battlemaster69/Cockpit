@@ -178,3 +178,4 @@ run_utc,kind,duration_s,calls_geckoterminal,calls_dexscreener,calls_rpc,new_pool
 2026-10-13T04:37:17Z,discover,92,8,15,0,144,122,1569,0,0,,,
 2026-10-13T05:37:16Z,discover,79,7,14,0,123,113,1595,0,0,,,
 2026-10-13T06:37:16Z,discover,112,10,9,0,182,170,1639,0,0,,,
+2026-10-13T07:37:17Z,snapshot,127,10,70,0,112,101,1447,0,0,1791881700,,
