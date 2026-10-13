@@ -61,3 +61,5 @@ token_address,symbol,cohort,assigned_utc,age_days_at_assign,price_at_assign,liqu
 0xf1cc0a4feed884a4490a1d8db943c0a92bd83347,ARTEX,control,2026-10-12T19:37:16Z,4.18,1.619e-05,11825,0x000050e18ffa3f8f7ad170eb9cef160eb3ed1111,recorder,
 0x61e0deba0a6bd1d0df92af816739449c861e3cce,SYNTHS,passer,2026-10-12T23:37:17Z,3.26,0.0003297,52629,,recorder,
 0xc46a812b77993b80b385338bcd39c9f25d4bac0f,HANK,control,2026-10-12T23:37:17Z,5.58,1.504e-05,7519,0x61e0deba0a6bd1d0df92af816739449c861e3cce,recorder,
+0xe1838f0dff03a9327dea87b2a2285850791297ec,SURPLUS,passer,2026-10-13T11:37:17Z,8.69,0.0009081,88312,,candles,
+0xad7f2f40ecc5c8e1ee2041df1fde6e572f9b1e18,SIB,control,2026-10-13T11:37:17Z,3.44,2.179e-05,21917,0xe1838f0dff03a9327dea87b2a2285850791297ec,recorder,
