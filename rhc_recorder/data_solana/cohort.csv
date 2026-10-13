@@ -3,3 +3,5 @@ token_address,symbol,cohort,assigned_utc,age_days_at_assign,price_at_assign,liqu
 4HQ7U4yHgrVmnpymjtWCWwtNqhpJLn6ZKiZFxotQuz2Y,ՍЅᎠТ,control,2026-10-10T15:03:35Z,4.09,0.9131,517419,6FhVPctYg363pQbs4iSvqyHe2cJzfsvFD96gePy6pump,candles,
 2j5SaS7xy776qCBpyPQbZjyQSAtKiFgrwjfErthnW2ZM,CLAUDIA,passer,2026-10-11T14:07:00Z,4.52,0.00948,379744,,candles,
 NTRNDMqQSiwEC2jJs3wJiZS6bpGYQJtMNQJgiX3WyV6,NTRNDM,control,2026-10-11T14:07:00Z,2.08,6.29e-05,21849,2j5SaS7xy776qCBpyPQbZjyQSAtKiFgrwjfErthnW2ZM,recorder,
+33jENUQnjoitkMFpvNJcSHyLAHFWJuHwT6E3E8CNpump,DOPE,passer,2026-10-13T15:03:09Z,2.06,0.001623,148302,,recorder,
+Gyk9Z93Ri2JUjqES9HTpc7pxCJTLD7vhBhEjBhyApump,Altai,control,2026-10-13T15:03:09Z,3.05,0.0001337,45845,33jENUQnjoitkMFpvNJcSHyLAHFWJuHwT6E3E8CNpump,recorder,
