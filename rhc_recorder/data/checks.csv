@@ -73,3 +73,7 @@ token_address,checked_utc,src_verified,has_mint,has_owner,can_pause,can_blacklis
 0xdf206d229cb4e725c3e0a0473dc7c1b2940bebb6,2026-10-14T07:37:17Z,,False,True,False,False,False,False,,,uniswap-v4-robinhood,,,too_many_transfers
 0xb1da35ddb716a2f66c612d15e6d3ce5b90afb447,2026-10-14T11:37:19Z,,False,False,False,False,False,False,1738,23.47,uniswap-v4-robinhood,12,True,
 0x3d9f96af585f899694afb73458e6f1f4e8f91111,2026-10-14T11:37:19Z,,False,False,False,False,False,False,68,20.51,uniswap-v4-robinhood,3,True,
+0xa583222dd1af98820da4234a6fe14c91e4465aac,2026-10-14T15:26:58Z,,False,True,False,False,False,False,,,uniswap-v4-robinhood,,,too_many_transfers
+0x4cf4061a8d59211dbcf5177fe94a7fc7e07fa45e,2026-10-14T15:26:58Z,,False,False,False,False,False,False,33,26.89,uniswap-v4-robinhood,3,True,
+0xc602a35ae102696acafc3aebbd4aaeda2f27ff43,2026-10-14T15:26:58Z,,False,False,False,False,False,False,22701,0.8,uniswap-v4-robinhood,32,True,
+0x0dc0f2dd82d76631b646cb0feb5b31ebcec5f9a8,2026-10-14T15:26:58Z,,False,False,False,False,False,False,185,20.79,pons-v2-dex,7,True,
