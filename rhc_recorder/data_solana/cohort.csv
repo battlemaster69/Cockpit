@@ -5,3 +5,5 @@ token_address,symbol,cohort,assigned_utc,age_days_at_assign,price_at_assign,liqu
 NTRNDMqQSiwEC2jJs3wJiZS6bpGYQJtMNQJgiX3WyV6,NTRNDM,control,2026-10-11T14:07:00Z,2.08,6.29e-05,21849,2j5SaS7xy776qCBpyPQbZjyQSAtKiFgrwjfErthnW2ZM,recorder,
 33jENUQnjoitkMFpvNJcSHyLAHFWJuHwT6E3E8CNpump,DOPE,passer,2026-10-13T15:03:09Z,2.06,0.001623,148302,,recorder,
 Gyk9Z93Ri2JUjqES9HTpc7pxCJTLD7vhBhEjBhyApump,Altai,control,2026-10-13T15:03:09Z,3.05,0.0001337,45845,33jENUQnjoitkMFpvNJcSHyLAHFWJuHwT6E3E8CNpump,recorder,
+AEPBdj3RViMJKCHM1xiVaM1VNuP7VbZRSN68gu5xpump,PATCH,passer,2026-10-14T18:49:59Z,4.87,0.0004948,67965,,recorder,
+8TiMkgvsrat9tM2esko8zVTt99LZLpefUM4SnZaziXaQ,QI,control,2026-10-14T18:49:59Z,5.58,0.0005126,79501,AEPBdj3RViMJKCHM1xiVaM1VNuP7VbZRSN68gu5xpump,candles,
