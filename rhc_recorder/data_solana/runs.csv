@@ -40,3 +40,4 @@ run_utc,kind,duration_s,calls_geckoterminal,calls_dexscreener,calls_rpc,new_pool
 2026-10-16T23:01:41Z,snapshot,194,17,13,2,160,178,72,1,1,1792191802,sample: launches 2026-10-16T22:52:15Z to 2026-10-16T22:57:31Z,
 2026-10-17T01:14:35Z,discover,115,10,14,0,149,144,78,0,0,,sample: launches 2026-10-17T01:08:47Z to 2026-10-17T01:14:02Z,
 2026-10-17T05:37:43Z,snapshot,192,17,15,0,115,143,81,0,0,1792215564,sample: launches 2026-10-17T05:30:22Z to 2026-10-17T05:35:32Z,
+2026-10-17T09:41:34Z,snapshot,157,14,16,0,141,160,84,0,0,1792230195,sample: launches 2026-10-17T09:33:42Z to 2026-10-17T09:40:24Z,
