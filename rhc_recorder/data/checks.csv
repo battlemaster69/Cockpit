@@ -105,3 +105,11 @@ token_address,checked_utc,src_verified,has_mint,has_owner,can_pause,can_blacklis
 0x481ff4a578d977bae5f38d54d81769d108b71111,2026-10-17T11:37:17Z,,False,False,False,False,False,False,40,20.9,uniswap-v4-robinhood,1,False,
 0xf5cd1235da2fd37fa948658746b57cef19a8d09e,2026-10-17T15:37:17Z,,False,True,False,False,False,False,,,uniswap-v4-robinhood,,,too_many_transfers
 0x302e2b3c57c42a6ab0401c5b2fd8500d64139c68,2026-10-17T15:37:17Z,,False,False,False,False,False,False,105,7.4,pons-v2-dex,8,True,no_mint_event
+0x077ab03da9d30c8f5c4e4fe176c827f16dc0778d,2026-10-17T23:37:15Z,,False,False,False,False,False,False,22494,30.38,uniswap-v4-robinhood,32,True,
+0x867d3f36fc4a35541675e8a147fa879c1804b8e1,2026-10-17T23:37:15Z,,False,False,False,False,False,False,286,26.49,uniswap-v4-robinhood,10,True,
+0x710a0414dc599112987515ac8d76e0cd28546bc1,2026-10-17T23:37:15Z,,False,False,False,False,False,False,431,16.27,pons-v2-dex,13,True,no_mint_event
+0x9994bfa979179af4bb0fbcd7f2df0d20a86637de,2026-10-17T23:37:15Z,,False,False,False,False,False,False,464,44.25,uniswap-v4-robinhood,10,True,
+0xb7c40060de463610c61b08ffac2c13d5163562d8,2026-10-17T23:37:15Z,,False,False,False,False,False,False,11817,0.26,uniswap-v4-robinhood,12,True,
+0x444ce8ede8e38e1ec18aeec45d415c1d298a8bcf,2026-10-17T23:37:15Z,,False,False,False,False,False,False,51,13.22,uniswap-v4-robinhood,1,False,no_mint_event
+0xf9e990ccb47806ac9268922bd21dc9a91c8e8899,2026-10-17T23:37:15Z,,False,False,False,False,False,False,3192,1.24,uniswap-v4-robinhood,6,True,
+0x38b05971c79e738f64452be83c78ec3d66535b7a,2026-10-17T23:37:15Z,,False,False,False,False,False,False,134,1.12,uniswap-v4-robinhood,1,False,
