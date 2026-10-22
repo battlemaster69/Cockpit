@@ -139,3 +139,5 @@ token_address,checked_utc,src_verified,has_mint,has_owner,can_pause,can_blacklis
 0xffb390e5b6136704905e2635afc3e5150e768a26,2026-10-21T07:29:38Z,,False,False,False,False,False,False,245,21.06,uniswap-v4-robinhood,9,True,
 0x511f76a3de41f000ec11ea4fd212fb3587c6cef3,2026-10-21T19:37:22Z,,False,False,False,False,False,False,244,19.3,pons-v2-dex,8,True,no_mint_event
 0x973ed7f47918c821722869ecd2e984b4d6ea7777,2026-10-21T19:37:22Z,,False,False,False,False,False,False,190,22.89,uniswap-v4-robinhood,6,True,
+0xb11384a6ac2b3708e3d25a834c8a88687accbcd1,2026-10-22T19:37:37Z,,False,False,False,False,False,False,1706,19.92,uniswap-v4-robinhood,9,True,
+0x77a1d1bbaaed989faf5ed10e623aebee6853373d,2026-10-22T19:37:37Z,,False,False,False,False,False,False,76,19.7,uniswap-v4-robinhood,1,False,
