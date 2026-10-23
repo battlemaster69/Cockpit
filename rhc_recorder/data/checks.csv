@@ -143,3 +143,7 @@ token_address,checked_utc,src_verified,has_mint,has_owner,can_pause,can_blacklis
 0x77a1d1bbaaed989faf5ed10e623aebee6853373d,2026-10-22T19:37:37Z,,False,False,False,False,False,False,76,19.7,uniswap-v4-robinhood,1,False,
 0xb63d07cef74be747231d601bb2faa6b252c68106,2026-10-22T23:33:36Z,,True,False,False,False,False,False,4219,7.03,uniswap-v4-robinhood,21,True,
 0x652720b02272c37d9328f08ee8343554d1caa8e7,2026-10-22T23:33:36Z,,False,True,False,False,False,False,187,3.39,uniswap-v2-robinhood,6,True,
+0x02146bf357df8baa6e548ab71999ff853e50c9b3,2026-10-23T03:37:18Z,,False,True,False,True,False,True,20596,0.08,uniswap-v4-robinhood,20,True,
+0x8dcddd2fab4bc6ca5c64e86b9c9ae82f797efa96,2026-10-23T03:37:18Z,,False,False,False,False,False,False,338,5.61,uniswap-v4-robinhood,1,False,
+0x57c0e45cb534413d1c20a4240955d6bb250bb4f1,2026-10-23T03:37:18Z,,True,False,False,False,False,False,944,0.1,uniswap-v2-robinhood,9,True,partial_history
+0x2eef2a627ac024cb9f545f6193b1940f0416a1de,2026-10-23T03:37:18Z,,False,False,False,False,False,False,240,19.24,uniswap-v4-robinhood,7,True,
