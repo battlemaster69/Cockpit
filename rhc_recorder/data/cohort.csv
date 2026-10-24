@@ -149,3 +149,5 @@ token_address,symbol,cohort,assigned_utc,age_days_at_assign,price_at_assign,liqu
 0x2eef2a627ac024cb9f545f6193b1940f0416a1de,COVENANT,control,2026-10-23T03:37:18Z,5.58,1.497e-05,11073,0x57c0e45cb534413d1c20a4240955d6bb250bb4f1,recorder,
 0xc51dbabd8b04cd13036d6896fb3a2b6668ac4ec6,WHEELIE,passer,2026-10-23T07:22:55Z,4.99,1.622e-07,52526,,recorder,
 0xaa5265e27c7de70063544ca3a7bbefccda3015a8,NIHAO,control,2026-10-23T07:22:55Z,3.1,1.57e-05,10184,0xc51dbabd8b04cd13036d6896fb3a2b6668ac4ec6,recorder,
+0x45ea2e30c88bd909da28ce8bdd3d86b311e3f9e8,USFD,passer,2026-10-24T03:37:20Z,2.54,0.0001883,95130,,recorder,
+0x72fffb21d64c1177e29e9e2de532efb038d8061b,FLYWHEEL,control,2026-10-24T03:37:20Z,7.29,1.025e-07,8497,0x45ea2e30c88bd909da28ce8bdd3d86b311e3f9e8,recorder,
