@@ -151,3 +151,5 @@ token_address,symbol,cohort,assigned_utc,age_days_at_assign,price_at_assign,liqu
 0xaa5265e27c7de70063544ca3a7bbefccda3015a8,NIHAO,control,2026-10-23T07:22:55Z,3.1,1.57e-05,10184,0xc51dbabd8b04cd13036d6896fb3a2b6668ac4ec6,recorder,
 0x45ea2e30c88bd909da28ce8bdd3d86b311e3f9e8,USFD,passer,2026-10-24T03:37:20Z,2.54,0.0001883,95130,,recorder,
 0x72fffb21d64c1177e29e9e2de532efb038d8061b,FLYWHEEL,control,2026-10-24T03:37:20Z,7.29,1.025e-07,8497,0x45ea2e30c88bd909da28ce8bdd3d86b311e3f9e8,recorder,
+0x82807286eed47381ad4971c102c32391f66fa9de,microduck,passer,2026-10-24T11:37:18Z,2.14,0.001388,120134,,recorder,
+0x2da80b9d1bc1b323693c80c76eb4a321ec08cbd0,SNTL,control,2026-10-24T11:37:18Z,3.89,1.039e-05,9182,0x82807286eed47381ad4971c102c32391f66fa9de,candles,
