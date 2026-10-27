@@ -161,3 +161,5 @@ token_address,symbol,cohort,assigned_utc,age_days_at_assign,price_at_assign,liqu
 0xb4d3a6097b765d094c0950ac03e917a2773eef4d,STOX,control,2026-10-24T19:26:08Z,4.75,1.883e-05,12278,0x30de7ae4c9578d110a97367ede9f7765cdce06ea,recorder,
 0x23ac2c7ce5216a7767a7fb06a9cc196294c84a63,microduck,passer,2026-10-25T15:37:18Z,2.12,0.0004937,91371,,recorder,
 0x377c377f8315a547bf067e5955b78fe2366ed938,MOONLIT,control,2026-10-25T15:37:18Z,6.18,4.012e-06,5673,0x23ac2c7ce5216a7767a7fb06a9cc196294c84a63,candles,
+0xfed6b187f6da04e2eae5d3ea89b57129da62b28a,GF,passer,2026-10-27T11:37:19Z,5.0,0.007238,218635,,recorder,
+0xde36bc5f7e2a2e5e04ddb9dcc7aad819ec354c07,HOOKLINE,control,2026-10-27T11:37:19Z,4.74,1.934e-05,12383,0xfed6b187f6da04e2eae5d3ea89b57129da62b28a,recorder,
