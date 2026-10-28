@@ -169,3 +169,5 @@ token_address,symbol,cohort,assigned_utc,age_days_at_assign,price_at_assign,liqu
 0x16c93795477fab5730a00889e042d5815be90bfc,FETCHN,control,2026-10-27T19:37:22Z,6.03,1.504e-05,10995,0x293a6b46cc1264e346ff36234048e9a7bec3fd8b,recorder,
 0xc6d0a987c6839d08516bcd27ad89b3bcc8bbaac1,ETH,passer,2026-10-27T23:37:18Z,2.26,4.948e-07,60822,,recorder,
 0x3c8e2a03b8df7068fea08e2c24701ae619191111,NGL,control,2026-10-27T23:37:18Z,7.14,1.191e-05,11457,0xc6d0a987c6839d08516bcd27ad89b3bcc8bbaac1,recorder,
+0x2c426fc075f67e16aceee22574d960fe72c35ffe,wPONS,passer,2026-10-28T03:37:20Z,5.4,2361.08,85123,,recorder,
+0xa7a7c2f7cea8f9bb3b5b85802f0cd844fa9b7586,AMLIL,control,2026-10-28T03:37:20Z,4.63,1.08e-05,9339,0x2c426fc075f67e16aceee22574d960fe72c35ffe,candles,
