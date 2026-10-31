@@ -121,3 +121,4 @@ run_utc,kind,duration_s,calls_geckoterminal,calls_dexscreener,calls_rpc,new_pool
 2026-10-30T18:44:03Z,snapshot,207,18,12,0,131,140,144,0,0,1793385944,sample: launches 2026-10-30T18:39:05Z to 2026-10-30T18:41:21Z,
 2026-10-30T22:39:49Z,snapshot,204,18,21,0,127,147,144,0,0,1793400090,sample: launches 2026-10-30T22:34:47Z to 2026-10-30T22:39:16Z,
 2026-10-31T01:50:23Z,discover,114,10,13,0,137,130,149,0,0,,sample: launches 2026-10-31T01:45:59Z to 2026-10-31T01:49:56Z,
+2026-10-31T08:00:18Z,snapshot,219,19,20,2,189,213,151,1,1,1793433719,sample: launches 2026-10-31T07:48:29Z to 2026-10-31T07:57:25Z,check 7SL2VnfYsC: 400 Client Error: Bad Request for url: https://api.rugcheck.xyz/v1/tokens/7SL2VnfYsChvog5oQY9Nmtqu1wceaMiQzWoqoLQpump/re | check 5Dw9h4ySRj: 400 Client Error: Bad Request for url: https://api.rugcheck.xyz/v1/tokens/5Dw9h4ySRjRPcED7g23kabJ5KSpReKLitktM9TREpump/r
