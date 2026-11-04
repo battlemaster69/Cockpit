@@ -209,3 +209,7 @@ token_address,checked_utc,src_verified,has_mint,has_owner,can_pause,can_blacklis
 0x384b028739f8b2c5d187bca0bbe20bd04d72f00d,2026-11-04T07:37:19Z,,False,False,False,False,False,False,294,32.97,pons-v2-dex,9,True,
 0x77e319ef1e39f7b900f0601581c43555823dfc82,2026-11-04T11:30:08Z,,False,False,False,False,False,False,387,29.89,uniswap-v4-robinhood,0,False,
 0xbf6bd9aa3e6a5ddac553527dec7e671ac0f41e18,2026-11-04T11:30:08Z,,False,True,False,False,False,False,557,17.98,uniswap-v4-robinhood,8,True,
+0x36c2861a1f94c6f277a388338a4f8a686e0d9b30,2026-11-04T15:37:21Z,,False,False,False,False,False,False,496,10.11,uniswap-v4-robinhood,1,False,
+0x316353b8ab5f1375e59c793d5903dadecf0f817e,2026-11-04T15:37:21Z,,False,False,False,False,False,False,165,20.16,pons-v2-dex,6,True,no_mint_event
+0x3f9ff9f1d40369f99c281375bd19d6ecbebfecd7,2026-11-04T15:37:21Z,,False,False,False,False,False,False,395,25.19,pons-v2-dex,16,True,no_mint_event
+0x7c9e80459292cb57445798cd95eaccc824471e18,2026-11-04T15:37:21Z,,False,True,False,False,False,False,6,0.05,long-xyz,0,False,
