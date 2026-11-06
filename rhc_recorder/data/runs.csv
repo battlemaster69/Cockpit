@@ -785,3 +785,4 @@ run_utc,kind,duration_s,calls_geckoterminal,calls_dexscreener,calls_rpc,new_pool
 2026-11-05T21:37:22Z,discover,93,8,18,0,147,137,1791,0,0,,,
 2026-11-05T22:37:20Z,discover,89,8,10,0,139,130,1836,0,0,,,
 2026-11-05T23:37:20Z,snapshot,181,14,83,0,186,180,1735,0,0,1793926503,,geckoterminal candles: 404 Client Error: Not Found for url: https://api.geckoterminal.com/api/v2/networks/robinhood/pools/0xa2f658fc50ddf38a028e07df0ad7f81635f1033abf8385ed45b2350522e
+2026-11-06T00:37:21Z,discover,80,7,16,0,129,115,1779,0,0,,,
