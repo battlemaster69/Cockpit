@@ -944,3 +944,4 @@ run_utc,kind,duration_s,calls_geckoterminal,calls_dexscreener,calls_rpc,new_pool
 2026-11-12T08:37:22Z,discover,55,5,13,0,88,86,1154,0,0,,,
 2026-11-12T09:37:21Z,discover,68,6,16,0,110,109,1181,0,0,,,
 2026-11-12T10:37:22Z,discover,63,6,6,0,101,95,1221,0,0,,,
+2026-11-12T11:37:25Z,snapshot,119,9,52,0,103,95,1105,0,0,1794488108,,
