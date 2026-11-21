@@ -223,3 +223,5 @@ token_address,symbol,cohort,assigned_utc,age_days_at_assign,price_at_assign,liqu
 0x163015276f3244bc2ccb78b4d69cc8a4069effac,CLAUS,control,2026-11-09T15:37:23Z,3.64,0.0005806,99614,0x2fc6de9c65a620f918ca7d1191d3afa495ca2898,recorder,
 0x20429af7ca3b0ce4d99edbaa0693f26c5df05195,QHOOKS,passer,2026-11-13T11:37:28Z,5.4,0.0008762,73834,,recorder,
 0x63a209b0b41f0e5de845baebd8c8f7c438a96edc,RURU,control,2026-11-13T11:37:28Z,9.08,4.692e-06,5550,0x20429af7ca3b0ce4d99edbaa0693f26c5df05195,recorder,
+0x3cf2aaaedddf3ad4d5d11b2dfc720c0731e1d8c8,SDQST,passer,2026-11-21T14:37:20Z,2.02,8.115e-06,213380,,recorder,
+0x681538a4da7ac2ea9861d41f7ad43c8c86e90cfd,USDG,control,2026-11-21T14:37:20Z,6.22,0.0004097,327832,0x3cf2aaaedddf3ad4d5d11b2dfc720c0731e1d8c8,recorder,
