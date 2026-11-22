@@ -1,0 +1,25 @@
+token_address,symbol,name,pair_address,dex,pool_created_utc,first_seen_utc,found_by,liquidity_at_discovery,tracked
+0x3a5e55015f79f7c627e25eb6ec73efc5f20dc35c,TYW,Trust Your Wallet,0xbeee64ed5b1f0c67d44d439ce2791ce67e511764,uniswap-v3-robinhood,2026-11-22T00:14:17Z,2026-11-22T00:16:55Z,new_pools,13422.3,True
+0x8d3de4f42921456e8c75e37a4699469d2bb8e37f,RSPR,RobinSpear,0x6579f19a6ddfc61753e6ee2e6abc22fc1d272c94,uniswap-v3-robinhood,2026-11-22T00:14:03Z,2026-11-22T00:16:55Z,new_pools,4225.82,False
+0x0b0b091bcc83758c6351d3df796a40690b2e4edb,TYW,Trust Your Wallet,0x3afe9d44390ec116c6b9d5b6673f0492d37723ea,uniswap-v3-robinhood,2026-11-22T00:11:16Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0x7d839802079acfccdcf78b0cdbeffa9a7de395fd,DOGCAT,Doge Cat,0x9f4bdf88d935b9d517b9bf37cbc74714fc73560a,uniswap-v3-robinhood,2026-11-22T00:10:22Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0x55525785ee1153f41d3461faa18ff64abd35aefe,DOGAI,Doge Ai,0x35cd73b589008ed52c8e52a76cc1eb9c4600b4ec,uniswap-v3-robinhood,2026-11-22T00:09:07Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0xb6462e0e3c3c27ec8a736f5840ede3098ddf0087,HPD,Official HPD Coin,0x69dfc1bcc5df6523822b5d9df8f1e0c514b94aa4306dc1b0cf322f37b47c6eda,uniswap-v4-robinhood,2026-11-22T00:08:25Z,2026-11-22T00:16:55Z,new_pools,1034.55,False
+0x54a123b1c99fc07f87ec7f4cc4c4e40205f3d18e,DOGPUMP,Doge Pump,0x73b287ca612057fd9cbaae23abd4004009ecfcde,uniswap-v3-robinhood,2026-11-22T00:07:55Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0x62d6e4a1f566a89d924d8606e362b6e69d40b2fc,MCAT,MoonCat,0x387fb0aac3389995636eb93b5c1ef7aec1aed550,uniswap-v3-robinhood,2026-11-22T00:06:44Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0x40e0c3dfcfc9ef6f52f466ea796a0b7aa0c5b030,GFROG,GigaFrog,0xb314c97f354d49bc414fccb9c853dc2106d32419,uniswap-v3-robinhood,2026-11-22T00:05:28Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0x8da43e48dc252cb02d4c86d748a1521f631ca2cc,NOODLE,Noodle Inu,0xfce97aa67d0eb7375c701e2531dd1992f33f8dfb,uniswap-v3-robinhood,2026-11-22T00:04:17Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0xd946c2cef54799d2f2c0dd2065083765c12b61ff,CAPY,Capynomics,0x50bc527aa3e6c06b4201b08f41849bb48ef1d779,uniswap-v3-robinhood,2026-11-22T00:03:06Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0x47b2ba32bbd35dd26a8a5b0b255de300aaf1a07d,WAT,We Are Together,0x130e67ba621446dad945bd8bec9c7be71061707f,uniswap-v3-robinhood,2026-11-22T00:01:56Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0x61926dea11f99b08160c88bef7e93478feb736b6,POPR,Popcat Robin,0x7e3ee7bf354810c9cdcae040c134a7cf9fcc578a,uniswap-v3-robinhood,2026-11-22T00:00:50Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0xbd19cd09f202eae26fa73ca7d7c2b7f9fdf00087,time,the ultimate currency,0xf42f5b20ae144ad7ac1c2e792ddec6ba94ac97ecc824c0dccb2fd3ef0fa285d4,uniswap-v4-robinhood,2026-11-21T23:59:57Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0xabac292da36e2c69ef65e30cea84deb0bcf60593,CHONK,Chonky Boi,0x5ae4de7dbef41e60b83028cc9fb1625840d06acc,uniswap-v3-robinhood,2026-11-21T23:59:44Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0x162fc49608fe15a310b8ef76cf5e10bd89fdc230,FRGP,FRIGATE PONS,0x2cfb18a54094f7fd3f633ab4b597c282c963d986,pons-v2,2026-11-21T23:58:21Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0x80b9e8feda97c11b6f68332e70918b0e3d2d0be2,PONSV2,Pons v2,0x6795cfe11ad7c9e10717030b64a8f27eeca8efd0,pons-v2,2026-11-21T23:58:13Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0x7638289c85bfe96076d8e328fbef1b55de6457cb,TYW,Trust Your Wallet,0x256464b5e75e90bf66b4d4b5384666feb2d0859e,uniswap-v3-robinhood,2026-11-21T23:57:36Z,2026-11-22T00:16:55Z,new_pools,0.24,False
+0x15cab53322fa7a8f4b27623ec4d62a1f0d7fe2eb,ATLAS,Field Atlas,0x96c468dc3ef8d809383b9abfd417e53d5b7993f4,uniswap-v2-robinhood,2026-11-21T23:57:29Z,2026-11-22T00:16:55Z,new_pools,125509.0,True
+0x5828eff869b36c880f7e99b95f5047d10d25417b,ELY,Elyfish,0xb48be8934e1775e796570b0e01fb07978cb56332,pons-v2,2026-11-21T23:54:20Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0x80bbc674f34f0d7f659dbbf53f9d9217c85e0087,turfs,turfs,0x3b75120123db3a534144885af08f716425a52deda31a6646a448f5e7a649247d,uniswap-v4-robinhood,2026-11-21T23:51:30Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0xec6663e90aef788f2e5b108ab29eca9e49f0ee01,MOCHI,Mochi Cat,0x7068327dc64693ca2350000428b9f8f244f622ac,uniswap-v3-robinhood,2026-11-21T23:44:38Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0x296b0b3bd74cf84860c4d2b9de504129fb550087,SIRA,Shiba Inu Rescue Association,0x8eab48bce7956833de2873a20c551bb409a613632d3d4c3ab36887aabbfde740,uniswap-v4-robinhood,2026-11-21T23:42:56Z,2026-11-22T00:16:55Z,new_pools,0.0,False
+0xc1b10ddf7486814b2d6852b2f70646aebdb891c4,Bigfoot,Bigfoot,0x9cf43c81a83b7bf69c46bee0651047c238127fb9,uniswap-v3-robinhood,2026-11-21T23:38:34Z,2026-11-22T00:16:55Z,new_pools,0.0,False
