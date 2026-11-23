@@ -1,0 +1,198 @@
+token_address,symbol,name,pair_address,dex,pool_created_utc,first_seen_utc,found_by,liquidity_at_discovery,tracked
+A3j6Jcs3saasbmpX4G2uUUGPun5YVxmqNrpn5Y6RknGh,NEAR,NEAR,BCFU8kEJXbuKVPY6yzG8uCYB2U1vcUrQi63giFMcNbng,orca,2026-11-23T03:30:44Z,2026-11-23T03:30:58Z,new_pools,12102800.0,True
+Exa4UgrJqCUBknGmuAnn2Rv4PyMGJ2yNmHgUnU7Rt9EM,Fly,Just A Fly On A Wall,5kKPhAiK8QqAZGxSFWLZ3JBTHgHUb5mWCb5u42iEBNJm,meteora-damm-v2,2026-11-23T03:29:18Z,2026-11-23T03:30:58Z,new_pools,22657.9,True
+EbWM7AUY3bvyBbsyMUWQaM64G3rh6un6AbK7G1c9ybvT,USOI,United States Oil Index,9kUPoZo8ETdXft6LKwLTjRrdikxdnwPaDRSsLtiK62Kz,pumpswap,2026-11-23T03:28:49Z,2026-11-23T03:30:58Z,new_pools,31177.0,True
+5XYE7TRGwWpFeADVhjL3PMVbRqkvEmUXFUB1sgDBq3Sr,Green cat,Green cat,EQwCqPpubTNQhvi4sJUTD7fP73AP8xU1g247SFC7XjWS,pumpswap,2026-11-23T03:28:15Z,2026-11-23T03:30:58Z,new_pools,0.0,False
+92H9rjQCTzCriDygsCZZCUcxZ2X4hXPoSDGAamKgbuXD,GORP,Global Oil Recovery Program,58Ewzr5ZFYkGJDn8gZJMYKD3rnXkh5kXEJvJyeMd5nux,pumpswap,2026-11-23T03:28:55Z,2026-11-23T03:30:58Z,new_pools,31792.7,True
+9fXUghWaHYQJX5B2ZM7gbkfgfYyfRFkDPe4udTAWeyNc,BLUE,Blue Coin,B9wetbxPSm83bbwRV5Kh7dqry1hySXmyD7pXwaa7nbt4,meteora-damm-v2,2026-11-23T03:28:57Z,2026-11-23T03:30:58Z,new_pools,35134.9,True
+B2EwFoXS5SDxrp9uuVBqdn16YjFqq5yhQ5Bqmth5zoGA,Fly,Just A Fly On A Wall,DPBu3ajPW7Ha7YEZH4i9xsWKp4Evi1QMXSB2Ep5jUgS5,meteora-damm-v2,2026-11-23T03:28:57Z,2026-11-23T03:30:58Z,new_pools,0.11,False
+BcYwdGJkmnVfCtDE397EDYfBxKckizgAD6kfxaHHmoon,CHARR,Chiefs Arrow,4pPTuK376dugHLKcTQwc58HGN4L2xvMFh2RzkQDeizrK,pumpswap,2026-11-23T03:28:09Z,2026-11-23T03:30:58Z,new_pools,102137.0,True
+37nFZSVdNAq9H5VuKovZ62ctGRrdE8VJUsskyHwFpump,poch,pochi,EshmXgCYsRH7tAvt5eh3vQ9Ztm36MS73LmpCWkrX1xgQ,pumpswap,2026-11-23T03:28:12Z,2026-11-23T03:30:58Z,new_pools,13.2,False
+CHqBG9LUvfzmqNWipzg3idvnBmfs4tr1KuFCWT6K8LTC,LiteToken,LTC-swap,6UvZfsZMbQpa7EqaNhaQV3UcYaVWs5w2fXXcXmeGTJpT,raydium-clmm,2026-11-23T03:28:00Z,2026-11-23T03:30:58Z,new_pools,4045190000.0,True
+AoqWS5eKgdpE5szbmB92afGXakYD2Ab59EQcfiM6pump,$BWIZ,🍌 BANANA WIZARD,8Su4PE8AegrRGSWdHgKD31FBkkPDtn24u6QQLGhvXoUG,pumpswap,2026-11-23T03:27:09Z,2026-11-23T03:30:58Z,new_pools,2.62,False
+83pVeWQUfkdVWHMfXDtJbd14T2YBvqdMBAN6xEZENa7G,HTML,hope this moons later,8WLokcQsJsucmvPaQY1LTs5q6B9MEEysn8c3xeenWiJa,pumpswap,2026-11-23T03:26:51Z,2026-11-23T03:30:58Z,new_pools,0.0,False
+5G7ebJGKPZNSK982W3BSY95oFetkC8bu21y735fRpump,NATTY,New Nasdaq,5T1PY7GVPaFTfQW6ZiLfbGBkyZ9FJ1Zkosj2iT7UivRK,pumpswap,2026-11-23T03:26:46Z,2026-11-23T03:30:58Z,new_pools,16.88,False
+1uNxAQbm5oavwnpMD6Z7RkBHWbQ82LjFFCj1Roo58b6,Fly,Just A Fly On A Wall,jGBCuwPQcY6W9ED4XDDD64ivukGijqWcG68chAgm4EX,pumpswap,2026-11-23T03:26:41Z,2026-11-23T03:30:58Z,new_pools,85996.0,True
+2VodfkW4HmrSvg2PhWCarK7SpACzoZXJdNxgd2b6tTT5,Fly,Just A Fly On A Wall,DNL4yycfgiSA6tR9oHaEqDgzudiSVHbdFTBEdRGf8dVv,meteora-damm-v2,2026-11-23T03:26:34Z,2026-11-23T03:30:58Z,new_pools,27694.0,True
+GTz42HXHw94kpR86w3J9McRL2XBtkNZNv6dHib7XhdUG,FSDV15,Tesla FSD v15,HgGvKKS4tFuH5RU1P68MWyCaPM862YvbVJf854QhM6Q6,meteora-damm-v2,2026-11-23T03:14:12Z,2026-11-23T03:30:58Z,new_pools,0.0,False
+ERU1DyxVKXLLx6MAQtAdADa1u7ugP4KGZtootcPmcLh8,USOI,United States Oil Index,J1JvMX4R5fRuqXopZe51sWxTsVzvy5fkFiSkzHzyGWqz,pumpswap,2026-11-23T03:25:56Z,2026-11-23T03:30:58Z,new_pools,90.4,False
+E2VqbQW3RHGXqfPVZxQGaUfqfipMoQuzWavz6jNfpump,GTA 6 Coin,GTA6,HJtj7ArhQvRW7RZjbzVzJknzsWx6HoMRwYMaeVjkpR2D,pumpswap,2026-11-23T03:27:35Z,2026-11-23T03:30:58Z,new_pools,10858.3,True
+Gc2a1GizgbPTT1KZLt3FDbRQ1JwD4tJoXaoDudjm45FM,BLUE,Blue Coin,Dw9GCXcDhzZtEMQi1mZZ55BgA9MdLPCBcNz2HP4NJZiP,meteora-damm-v2,2026-11-23T03:27:32Z,2026-11-23T03:30:58Z,new_pools,4.1,False
+BWYUrCFgpQbS95JgJDm5JGtj1ideNibvfzPyRjZw3mfq,HI,Human Intelligence,2zJp5K3poeU9krVfstYNXQc8rdZtdXWqUAjtcJGsua2k,meteora-damm-v2,2026-11-23T03:27:24Z,2026-11-23T03:30:58Z,new_pools,21909.8,True
+EbEtMAERUSudiPZMmfgcvfg7XDnEzapC7Cbn2SFbbq3L,Antsem,Antsem,7Qc146a2S4iaqZYZxAcq8jKcFCw322SBL5qm68rNWmSx,meteora-damm-v2,2026-11-23T03:27:24Z,2026-11-23T03:30:58Z,new_pools,30228.6,True
+5Va9TNNZjQxuksxdJgxTUAhpRr5gACQAgSGV3bfxwWKD,Fruitfly,Fruitfly,DdZuouAf7HdEYQLZAk4bErxrUrFHTGqqPTN2uDX87Ts1,stonkfun,2026-11-23T03:25:59Z,2026-11-23T03:30:58Z,new_pools,0.0,False
+EWXSa2trwYjNoc6Tdih8wS775sbRSHjRJHuqdfv48pgF,Antsem,Antsem,ALyZ1oDp7yJNa3n3wcdiBbSgkVqmh1kxVb5rTeytmZc9,meteora-damm-v2,2026-11-23T03:25:59Z,2026-11-23T03:30:58Z,new_pools,0.1,False
+3pbCFREv1dKwspHHuTstYZ3meQVmvorSLNPawaU7fWq1,Sheep,The Sheep,6f4eqLKhMg4wCofDmm2qymCWbnMQy4Y5pVCUvJK4V4AC,meteora-damm-v2,2026-11-23T03:25:38Z,2026-11-23T03:30:58Z,new_pools,1.25,False
+78nLGy9N52E79bLvSzenW4gpXgDq26Xk4fF3J7Lfpump,zard,zard ,BAtDFjuDhR73MXNfnUd53cQcKusUpuyJZwbDe2mKGa8,pumpswap,2026-11-23T03:25:29Z,2026-11-23T03:30:58Z,new_pools,1.73,False
+HCmQMrt4H72JZBEx1pfXGP4mzue1UoreH1Z6a5BBnTpZ,Antsem,Antsem,HjShVwLEFkRPZLz9X95pqjyu86fJs9uJndg2mxbboPQv,stonkfun,2026-11-23T03:25:23Z,2026-11-23T03:30:58Z,new_pools,0.0,False
+XjuX2UyPnD1RGmQpj7p6RXbobYnPih2uHua1QGxoU3d,Fly,Just A Fly On A Wall,DRexcwpQikRUnsiRFFancXr7GrKqUQGVzBCo2vKg3Wtv,meteora-damm-v2,2026-11-23T03:25:17Z,2026-11-23T03:30:58Z,new_pools,0.25,False
+DUZaqCrpGnXKZWzQbcWEN6xw62Nh8jpfDrD9E4ToCzE,cCAT,Confidential Cat,38zt6XGaDxmNnR8ZZdMcoUsaA6h5xM7QA3Gn7uP2FyRY,pumpswap,2026-11-23T03:25:02Z,2026-11-23T03:30:58Z,new_pools,88933.4,True
+EHMGiQA72qnNdTxhrvRhygga4f9w7kYmDazDtaZs9ENQ,Fly,Just A Fly On A Wall,49bNZkFhtPXp8L12Z77cHucqj5FjwgNASMK3NnTF2i5N,meteora-damm-v2,2026-11-23T03:24:26Z,2026-11-23T03:30:58Z,new_pools,0.01,False
+HHReQF8ERWFb7Jbwubv6b8Kv61FVSio7drWKqxXBbonk,EGSHLD,EAGLE SHIELD,C5oUT5Q9FqUDAw6F8voJNEufXPVQErDAj9zNQh6L3AhE,pumpswap,2026-11-23T03:23:21Z,2026-11-23T03:30:58Z,new_pools,0.0,False
+FWz4DFojVM7f15BFQeuyqBdjfsjizUSsyv7hNNexEtau,Fly,Just A Fly On A Wall,Gc39iZVwp9JxBoLk3ivTk5HyB8JR6veLmUdXaUpSmqJ2,meteora-damm-v2,2026-11-23T03:23:23Z,2026-11-23T03:30:58Z,new_pools,0.21,False
+7AUF3NNWWpTNk4jZ43ZYisr6uZbDzokqrMNKrjqyGSin,HTML,hope this moons later,qHBmsxxnjv3bXq6Kn3pcx8rDZCBW5eL4gtRGEtoe5iu,pumpswap,2026-11-23T03:23:12Z,2026-11-23T03:30:58Z,new_pools,0.0,False
+BKeo3LGYAuCbTeKeMf8GHX9eqKaNJJBvoW4LGSHYZU1w,Swatter,Just A Swatter,DmxTjAQJ9JMVoP73wwSFxm5g57KFVtMrkAcLnd34JtLj,meteora-damm-v2,2026-11-23T03:23:03Z,2026-11-23T03:30:58Z,new_pools,2.5,False
+9LV5xqKJEU6YL4vzgci979peV8HuSQSrZHiboV8xAJex,MOOJIW,MooJiw,7ko5aGYyiqZGJt69sLkKHXcQKHYtzizwAqZ49f8sUnTG,meteora-damm-v2,2026-11-23T03:17:40Z,2026-11-23T03:30:58Z,new_pools,0.0,False
+B8RHrVBxSjBGKqAbn1tXo6CWjvt5jFkkqjbCZtuDpump,DUSD,Deflationary USD,2z2uBDXaAFishs6XRz2atV2Ro7jL8hfdUcKxTTfhjHDw,meteora-damm-v2,2025-09-05T17:09:56Z,2026-11-23T03:30:58Z,new_pools,43042.8,False
+8V1S4ZMTvWVUPEu9sMDjgcsq2phkJdtnPoa8XdNwG8E1,html,hope this moons later,7hNK78SXhzg6z7BFsPq9WTWcKDUhVsGJ5m3QXsHFghhq,meteora-damm-v2,2026-11-23T03:22:59Z,2026-11-23T03:30:58Z,new_pools,39639.1,True
+26oha4WAEHbaRf6VAx1XpjBNbSoAVMDsxwGqNq7xpump,GETPAID,,,pump-fun,2026-11-23T03:30:37Z,2026-11-23T03:30:58Z,new_pools,,False
+8LJhjsEU8Gr6wC2kTzEbjaj8QDMrxWeE3kXa47Vipump,BUZZ,,,pump-fun,2026-11-23T03:30:31Z,2026-11-23T03:30:58Z,new_pools,,False
+9h5vMQJoYB7PtUTr5bj9WHBE5UaNqH9Dth8rY1hLpump,SHAME,,,pump-fun,2026-11-23T03:30:28Z,2026-11-23T03:30:58Z,new_pools,,False
+GvztucLmKnnQJdvybTq7ndksRoPifeCrYJWiCsuNpump,BOB,,,pump-fun,2026-11-23T03:30:25Z,2026-11-23T03:30:58Z,new_pools,,False
+E6X19guciinCWoV8DJbxqgP5JnNsi2YwfEXSxRPNpump,BOLTRAY,,,pump-fun,2026-11-23T03:30:22Z,2026-11-23T03:30:58Z,new_pools,,False
+5yZsumSXGSgixmYDdyuUvfBDFCHfL15Z34yooLUFpump,MCH,,,pump-fun,2026-11-23T03:30:17Z,2026-11-23T03:30:58Z,new_pools,,False
+EjAsuBG69ajtTCtqmXeTydysXhoE25Jz46eWPLmapump,CBD,,,pump-fun,2026-11-23T03:30:16Z,2026-11-23T03:30:58Z,new_pools,,False
+H5H2SxMweiZeY9FGEDPK5NMb2ZeSwrUZqn81LEa2pump,BONG,,,pump-fun,2026-11-23T03:30:14Z,2026-11-23T03:30:58Z,new_pools,,False
+GpqPtZJycuEEDaUV26w32pcSiak82E4MACubGvtwpump,HELIUM,,,pump-fun,2026-11-23T03:30:11Z,2026-11-23T03:30:58Z,new_pools,,False
+5tTJtPbKKFrJL63EsySZDTZKmLfnJCAWWWqbL8hppump,OOF,,,pump-fun,2026-11-23T03:30:05Z,2026-11-23T03:30:58Z,new_pools,,False
+CVDjeXj58pUtvgxdBvo8qiscBnEEt6oFDpMdyvtPpump,GNB,,,pump-fun,2026-11-23T03:30:04Z,2026-11-23T03:30:58Z,new_pools,,False
+8AuGABvfMWuFpDWQXANruYV6kFMEvGuFReQNsTrJpump,Horse,,,pump-fun,2026-11-23T03:29:56Z,2026-11-23T03:30:58Z,new_pools,,False
+FsdvkeDgfQfqUejkquDFDG6bj9xpt8ADNahT5ks2pump,JJC,,,pump-fun,2026-11-23T03:29:56Z,2026-11-23T03:30:58Z,new_pools,,False
+FcWt4aarL3sBBnYkrsH7ToDYB7P5EtydiXkL98X2pump,LUCKY,,,pump-fun,2026-11-23T03:29:54Z,2026-11-23T03:30:58Z,new_pools,,False
+FeLxLqQhjLvyxwuLFPy3vZMQiKVVRAtW7LrbvZJDpump,BUZZ,,,pump-fun,2026-11-23T03:29:52Z,2026-11-23T03:30:58Z,new_pools,,False
+GKLSiMtAPjQJLTYE3pbi6DPFpD3qozninQL9dLyKpump,JSONG,,,pump-fun,2026-11-23T03:29:50Z,2026-11-23T03:30:58Z,new_pools,,False
+2ZFCLTCuR21k9Q6uHAbKneRv7bVWfRvMwtQM76nBpump,Sheep,,,pump-fun,2026-11-23T03:29:50Z,2026-11-23T03:30:58Z,new_pools,,False
+3yxyFaFTXcM3sDmEQv9PencNe67hWaDR6VdWK2f8pump,Pepe,,,pump-fun,2026-11-23T03:29:49Z,2026-11-23T03:30:58Z,new_pools,,False
+C4Sb3PXnLPa7dbcq4YHNE3ejDgKK85zMyj76sbH6pump,EVIE,,,pump-fun,2026-11-23T03:29:48Z,2026-11-23T03:30:58Z,new_pools,,False
+6x8hL43Tdcb2FfeUq3fpUDbXh72iXzjHpCJhWWispump,BOLTRAY,,,pump-fun,2026-11-23T03:29:10Z,2026-11-23T03:30:58Z,new_pools,,False
+9N33bGuKLDcVgHj9sDHBa9V23m856BsfsKJ3mJxCpump,Fox,,,pump-fun,2026-11-23T03:29:07Z,2026-11-23T03:30:58Z,new_pools,,False
+6S6XVGaqFGmi56vTvaYMRX7hXFTrHxw13U2vX4Gppump,HIGHER,,,pump-fun,2026-11-23T03:29:07Z,2026-11-23T03:30:58Z,new_pools,,False
+FaMi4tsSbA2iWxfGx5gsAp18GXdysmX396wDnCCkZkvN,FAMILIAR,,,raydium-launchlab,2026-11-23T03:29:05Z,2026-11-23T03:30:58Z,new_pools,,False
+3FQuWG1TcHXncVz7APjXQRKE45EkgdjvDdQfpC4wZraZ,shep,,,pump-fun,2026-11-23T03:29:03Z,2026-11-23T03:30:58Z,new_pools,,False
+EvgqNhkfm41iLmcXzLTjyFz9wZA88AnmsKNWUd1Jpump,speedrun,,,pump-fun,2026-11-23T03:29:00Z,2026-11-23T03:30:58Z,new_pools,,False
+A18eme7ZhbAc23CiGZmJyFGpsvURjikjw7eJBsVrpump,$FATJASON,,,pump-fun,2026-11-23T03:28:54Z,2026-11-23T03:30:58Z,new_pools,,False
+B8HPsjybGacd9mZCh5pkpRKM1FUMaCQPvf5pEWkHpump,meme,,,pump-fun,2026-11-23T03:28:54Z,2026-11-23T03:30:58Z,new_pools,,False
+7p2ZxNH8mSm3G6Shz2HJ5HbG5JwJhvX81dGjqc1Mpump,$HOLDING,,,pump-fun,2026-11-23T03:28:50Z,2026-11-23T03:30:58Z,new_pools,,False
+9UPmCo1vur6Ty17LVa9SzAkN2PM6FXndYsdbTTW2th1h,LİON,,,pump-fun,2026-11-23T03:28:43Z,2026-11-23T03:30:58Z,new_pools,,False
+FRR5PZe7isv5Tqs2uPRp9aozjs9RQcWxEaaiH5QBpump,LİON,,,pump-fun,2026-11-23T03:28:42Z,2026-11-23T03:30:58Z,new_pools,,False
+3nVSeeQZhdA4uH4iKng8TBjTPeM5QTDSsQuzwTJgpump,pinwifinu,,,pump-fun,2026-11-23T03:28:40Z,2026-11-23T03:30:58Z,new_pools,,False
+XBRY6zjxx91Q9JPCSaFAquedWfEQsqZKyUPJXDdpump,BANANA,,,pump-fun,2026-11-23T03:28:40Z,2026-11-23T03:30:58Z,new_pools,,False
+Hm2Vu7dTfeyfBQnK2sXksTX4hEcoNpuoTdvAgS1jpump,CAMO,,,pump-fun,2026-11-23T03:28:36Z,2026-11-23T03:30:58Z,new_pools,,False
+GMJ83yFAD3GawMBSvmaeTkKuWrpXzcrUvZXetKP3hFrp,Fly,,,meteora-dbc,2026-11-23T03:28:34Z,2026-11-23T03:30:58Z,new_pools,,False
+7ta3E2uCZ8NUMZJ24NWPB8eEM5QHEQDqwUsjb5MYpump,OPC,,,pump-fun,2026-11-23T03:28:31Z,2026-11-23T03:30:58Z,new_pools,,False
+4TFnitUo1FgiSQuXTSqWSADctqsRgpnpkFBH5NSdpump,JJK,,,pump-fun,2026-11-23T03:28:22Z,2026-11-23T03:30:58Z,new_pools,,False
+FbBNc2k42hRfKHv4BotofVhUcvKm95JMSqKtPBzApump,STENKS,,,pump-fun,2026-11-23T03:28:22Z,2026-11-23T03:30:58Z,new_pools,,False
+Abmnv8L7TkxJKKVvL5dU3dqZs2mtfUnWMgigXYACpump,Fool,,,pump-fun,2026-11-23T03:28:19Z,2026-11-23T03:30:58Z,new_pools,,False
+Bo1K8FGkg95EJcJ8it2FaKS7qMhxaeo8J2oWg3dMpump,GOD,,,pump-fun,2026-11-23T03:28:14Z,2026-11-23T03:30:58Z,new_pools,,False
+ATeY6eEwNg1WYqesgVKCiU1HP9ig6tGK4mEZ1r5Spump,$CAT,,,pump-fun,2026-11-23T03:28:10Z,2026-11-23T03:30:58Z,new_pools,,False
+36YqocuhteU6GKWBMPPZUCyLYofdPjHM73byxQtcpump,coon,,,pump-fun,2026-11-23T03:28:09Z,2026-11-23T03:30:58Z,new_pools,,False
+UTxgEfzrij7qyRva7sir7TCHus9jet9TDCzX2fapump,FULCRUM,,,pump-fun,2026-11-23T03:28:08Z,2026-11-23T03:30:58Z,new_pools,,False
+4tUKUDVjB4drjTtaF2tCdeFQLpePNdkrBXqAAgX1pump,WALL,,,pump-fun,2026-11-23T03:28:00Z,2026-11-23T03:30:58Z,new_pools,,False
+EwHjSNDUWYC71KCK5Xm9pmSbJXmscrT11431eJ8Hpump,MOCA,,,pump-fun,2026-11-23T03:27:55Z,2026-11-23T03:30:58Z,new_pools,,False
+Dr6FH6L9R2xKbrihWxpjqq63KzA4wzeVs5Q8XJftpump,Flywtf,,,pump-fun,2026-11-23T03:27:08Z,2026-11-23T03:30:58Z,new_pools,,False
+2zV86dLCdZ4o9deLNgyJbn44D84yvzwjNrHUcCNjpump,BetOnBlak,,,pump-fun,2026-11-23T03:27:03Z,2026-11-23T03:30:58Z,new_pools,,False
+JEF4iHxvsy3UjqqugFv8evJLap1c6i5CSzAFXfa2YNdH,Blue,,,pump-fun,2026-11-23T03:26:58Z,2026-11-23T03:30:58Z,new_pools,,False
+GGkUv29EfJzqCezKk27A5Asc3ZN3eVhDETKkQQ3opump,BLUE,,,pump-fun,2026-11-23T03:26:58Z,2026-11-23T03:30:58Z,new_pools,,False
+HekkXzcLAUW6QhAHmMwVU6NLMuisS9CCJkUtc5cCpump,Flysem,,,pump-fun,2026-11-23T03:26:54Z,2026-11-23T03:30:58Z,new_pools,,False
+HVs2LsUvLgj7aCxftfpPQtdPyccEBUoNd3SVcBncpump,SURVIVOR,,,pump-fun,2026-11-23T03:26:51Z,2026-11-23T03:30:58Z,new_pools,,False
+HoitFs7tJ3hjWAnd5NseLimyVoeEWf2pSyRHTBmSpump,Cat,,,pump-fun,2026-11-23T03:26:48Z,2026-11-23T03:30:58Z,new_pools,,False
+EsDZMmPVPdgC1dazv679cT9VhGfJHJF1paaEBPFipump,speedrun,,,pump-fun,2026-11-23T03:26:42Z,2026-11-23T03:30:58Z,new_pools,,False
+35d3AkwowKKDzWwAR5gja6hAbRNUQVLV2JP2DsHWpump,FLY,,,pump-fun,2026-11-23T03:26:40Z,2026-11-23T03:30:58Z,new_pools,,False
+DRYg2sfY8UN4u2LBbXNKVCvwXJXGH8nBVYetBsUQpump,JustTrade,,,pump-fun,2026-11-23T03:26:36Z,2026-11-23T03:30:58Z,new_pools,,False
+E9tBohaFoRDTyAzfZbp6FpnKksQLnQPpsMFStGFKBAGS,HI,,,bags-fm,2026-11-23T03:26:27Z,2026-11-23T03:30:58Z,new_pools,,False
+8USzCdReiccVjfoTCq5uS366XxBVftMQNW67EXBgpump,toest,,,pump-fun,2026-11-23T03:26:23Z,2026-11-23T03:30:58Z,new_pools,,False
+GCy6YbK6XCXK6SLBG62q5zQGM5LN7WevhVfGqKeQNDQd,cCAT,,,meteora-dbc,2026-11-23T03:26:20Z,2026-11-23T03:30:58Z,new_pools,,False
+6FQqYtcYb69tWjRFLsnFfyVfieFZAuHzHD54vYyXpump,GLITCH,,,pump-fun,2026-11-23T03:27:54Z,2026-11-23T03:30:58Z,new_pools,,False
+H3xYqussR5uJ72eRtpWPEie8rCnEMDyAn9XDZojwjojw,TRUNOEST,,,pump-fun,2026-11-23T03:27:53Z,2026-11-23T03:30:58Z,new_pools,,False
+G46AMHJswaMhVyAGmQErA1YL8sUUMJL1SWzBc32X7feD,BLUE,,,pump-fun,2026-11-23T03:27:47Z,2026-11-23T03:30:58Z,new_pools,,False
+6b3HZVfSv7iKHAsgLBcCfZAuQxRQoRyaPtQfBRf8pump,dog,,,pump-fun,2026-11-23T03:27:45Z,2026-11-23T03:30:58Z,new_pools,,False
+D8HicuYUQhyae2USUCwiB3gPznEUowCQYnTRuZaqpump,BLUE,,,pump-fun,2026-11-23T03:27:43Z,2026-11-23T03:30:58Z,new_pools,,False
+9ktydvCmu5htYQ9awvfDR26cGAdZypncsrvxoY9Vpump,DERP,,,pump-fun,2026-11-23T03:27:40Z,2026-11-23T03:30:58Z,new_pools,,False
+7uR9t5ootUDxStiTzoiW6YPBa73Z8yNq9rN4eKVBpump,GOLD,,,pump-fun,2026-11-23T03:27:28Z,2026-11-23T03:30:58Z,new_pools,,False
+6BPvtkR4umwuFBpc6mTBn5a7E8vpD6mSwonZrSEAR64Y,$FLY,,,pump-fun,2026-11-23T03:27:20Z,2026-11-23T03:30:58Z,new_pools,,False
+4ByHE5fgioQTfH6hm68TMQPgUrc8PQjuHZvppsM4pump,BLUE,,,pump-fun,2026-11-23T03:27:16Z,2026-11-23T03:30:58Z,new_pools,,False
+4WkhMREsfZZdntnpGHHsx3TMmbhwL4JziTuTyuxtpump,toest,,,pump-fun,2026-11-23T03:27:11Z,2026-11-23T03:30:58Z,new_pools,,False
+Anx8joSr2ZDJfzPz1EMqgjS73VK8XCKZcwsQrHzvBAGS,FOOL,,,bags-fm,2026-11-23T03:26:16Z,2026-11-23T03:30:58Z,new_pools,,False
+Ai8zcDqDTbcDME6b1JnqwvxwKxpFBNKt8jbugzP9pump,flynoiz06,,,pump-fun,2026-11-23T03:26:15Z,2026-11-23T03:30:58Z,new_pools,,False
+3jBsqbjXi2oMb815KYbo3Bh5SYCUKXjUAeAw84VTpump,CALL,,,pump-fun,2026-11-23T03:26:14Z,2026-11-23T03:30:58Z,new_pools,,False
+7HKfT1cNZ7HW1RBK1QPJA9bP7SDg5oB75y4aykZNpump,Fox,,,pump-fun,2026-11-23T03:26:05Z,2026-11-23T03:30:58Z,new_pools,,False
+6fYa5Mugfh4DSod5boKxFiB8ounC3Wt7SKqzEbTVpump,foxecoin,,,pump-fun,2026-11-23T03:25:56Z,2026-11-23T03:30:58Z,new_pools,,False
+3y4qgv3pHVLCbQoSbt5MLSrVuDjGZGcR1Wg65QTXpump,RICK,,,pump-fun,2026-11-23T03:25:52Z,2026-11-23T03:30:58Z,new_pools,,False
+GNxpXtsCmLF7f7kzJUb5DqbPdWDE3nZGUrnQhPmPpump,ZIP,,,pump-fun,2026-11-23T03:25:46Z,2026-11-23T03:30:58Z,new_pools,,False
+4ZyXoLuqCdJGkRBJ8pKtmBdHVqJVrZsqFRYy6xqopump,RICK,,,pump-fun,2026-11-23T03:25:35Z,2026-11-23T03:30:58Z,new_pools,,False
+Hz45QaogfFqsciNCG48AvGRj6KvYoR7iRGKkAk1xpump,HERD,,,pump-fun,2026-11-23T03:25:34Z,2026-11-23T03:30:58Z,new_pools,,False
+BAY712arN7q8sdmShxh8w3AeBMDPHyFwjjovSpFHpump,Fruitfly,,,pump-fun,2026-11-23T03:25:32Z,2026-11-23T03:30:58Z,new_pools,,False
+DEMriaKnmoC9PXFuLyfBeWYbe1mTDVSVbkW7pxPapump,BULL27,,,pump-fun,2026-11-23T03:25:31Z,2026-11-23T03:30:58Z,new_pools,,False
+2saZrMRXu6aRaHXvwCDcB9Qn6RRT2tmqtQSY1XHwpump,Cow,,,pump-fun,2026-11-23T03:25:28Z,2026-11-23T03:30:58Z,new_pools,,False
+95rjH3WDLnSx1C7fUVaNDxk6ndnXhqhbgrxnwGRrpump,ANTSEM,,,pump-fun,2026-11-23T03:25:09Z,2026-11-23T03:30:58Z,new_pools,,False
+ECK9XMCSubAjErpzKHVMUaThmQcKAq1vT4QwKKXunbJN,MCAT,,,meteora-dbc,2026-11-23T03:25:09Z,2026-11-23T03:30:58Z,new_pools,,False
+HiMuHk4UpVdAuDSj64kHkEfQe74JU3LUko6cGsP5pump,CaseOh,,,pump-fun,2026-11-23T03:25:08Z,2026-11-23T03:30:58Z,new_pools,,False
+5cMxcUPp3GbHrWkaJ8Kd3RbVZ7PDpERQwZ8fqYSBpump,Cantine,,,pump-fun,2026-11-23T03:25:06Z,2026-11-23T03:30:58Z,new_pools,,False
+2eWqySqVJm7MqRxevLBsBTTJJSSAViDozUSAmwt6pump,Antsem,,,pump-fun,2026-11-23T03:24:57Z,2026-11-23T03:30:58Z,new_pools,,False
+FZPCaKYetSbxsNAnLn9fZFMob2ef4KJh9sd5KCCjpump,Cantine,,,pump-fun,2026-11-23T03:24:48Z,2026-11-23T03:30:58Z,new_pools,,False
+RJGNFVUaqDGA9z9HPniQfLiiXdNNwoakDt9yQtWpump,$AURA,,,pump-fun,2026-11-23T03:24:45Z,2026-11-23T03:30:58Z,new_pools,,False
+D8HGuzpwsUPgT875SBRfcEAABQUKNTBMs82GGLcKpump,FLY,,,pump-fun,2026-11-23T03:24:42Z,2026-11-23T03:30:58Z,new_pools,,False
+HZFkeRQ22BhR1Bdjou5szb6ioEgEjFmf7t7JNi53pump,toest,,,pump-fun,2026-11-23T03:24:37Z,2026-11-23T03:30:58Z,new_pools,,False
+MbFwNEvhod5qWHLNUsa6gtSSxE6SZocnDQ2Aj8Cpump,Antsem,,,pump-fun,2026-11-23T03:24:37Z,2026-11-23T03:30:58Z,new_pools,,False
+HoQWMhKhi4wzSHg4WnmFKNHsFU7SURL5Zhjavv6Vpump,FHC,,,pump-fun,2026-11-23T03:24:35Z,2026-11-23T03:30:58Z,new_pools,,False
+9mKPrbBiFSLtihPYoPo1fmJufp4P4JVa5xqdqhompump,BIRD,,,pump-fun,2026-11-23T03:24:34Z,2026-11-23T03:30:58Z,new_pools,,False
+J3Xhxk7QWLDnbD9Hsq5KoS7vHx5YGhVAtiMmRevNpump,fog,,,pump-fun,2026-11-23T03:24:31Z,2026-11-23T03:30:58Z,new_pools,,False
+8wGGkxoXQttW3Q1Eq8A2g3BSG8wRwP6BCyAJkmu4pump,ISLAND,,,pump-fun,2026-11-23T03:24:26Z,2026-11-23T03:30:58Z,new_pools,,False
+Gw3aHHwsY9rvq2WQU2qPfanYZ1KDTE7S3xjEHBe9pump,GTA 6 Coin,,,pump-fun,2026-11-23T03:24:25Z,2026-11-23T03:30:58Z,new_pools,,False
+7f3TGthMbjGYd2D23LWQsvDofcFGgK1pjtuENmT7pump,FULL,,,pump-fun,2026-11-23T03:24:22Z,2026-11-23T03:30:58Z,new_pools,,False
+8PinAv5ZHfcGvEe3U5dwy7yLBv9vLsywYFr3W27bpump,Sheep,,,pump-fun,2026-11-23T03:24:19Z,2026-11-23T03:30:58Z,new_pools,,False
+8pbkErXqBZt27oK7dXwjQHoMqpDkywJj4zM6hXzppump,TMQC$$,,,pump-fun,2026-11-23T03:24:13Z,2026-11-23T03:30:58Z,new_pools,,False
+75EiNR3qtPNcJ7h6TmD2oMNJc3K64xFFJLhriKWfpump,GOLD BEE,,,pump-fun,2026-11-23T03:24:12Z,2026-11-23T03:30:58Z,new_pools,,False
+4eAsSGfXSHmTcF29hA6PFcLRBg1JND9nzitFuqBzpump,$TRADE,,,pump-fun,2026-11-23T03:24:09Z,2026-11-23T03:30:58Z,new_pools,,False
+BmeArUqwC6ihrVSUAQ24cCxVae6VxHs5YN3dqWqjDxyW,Fly,,,meteora-dbc,2026-11-23T03:24:09Z,2026-11-23T03:30:58Z,new_pools,,False
+3kDceK2e5FSbeBz5GJsxWVKw3gu13t7CHfWoJWEdeHrr,FLYWHEEL,,,pump-fun,2026-11-23T03:24:07Z,2026-11-23T03:30:58Z,new_pools,,False
+3FgUs8tj4RECkQWtfzu29JFK11cg6ZViAtSKw5Lopump,TYSWAN,,,pump-fun,2026-11-23T03:24:06Z,2026-11-23T03:30:58Z,new_pools,,False
+5dixDk9hHieKeddDsC2SqnCWyxzdfV8dLsMGn4H8pump,DOOYET,,,pump-fun,2026-11-23T03:24:04Z,2026-11-23T03:30:58Z,new_pools,,False
+HE1iq2houkt9tqiW2yhyXQNDJexzpGXDKibZUKiopump,Needle,,,pump-fun,2026-11-23T03:23:27Z,2026-11-23T03:30:58Z,new_pools,,False
+DjWPkthgtd8twsa9FAST7MQ3rBMJMwctPfNgyHhypump,ANT,,,pump-fun,2026-11-23T03:23:07Z,2026-11-23T03:30:58Z,new_pools,,False
+2GrsM3CvVSE3kiWZVLm8CMBfgkrtXqTTFZr2mEp9pump,Netenyu,,,pump-fun,2026-11-23T03:23:00Z,2026-11-23T03:30:58Z,new_pools,,False
+71ekGos4t1XckyreS5egh7SsxuuAnJDrDWuXrq5Xpump,MASKON,,,pump-fun,2026-11-23T03:22:58Z,2026-11-23T03:30:58Z,new_pools,,False
+ECGUJ18F63KcUFCaykPcRrxvHFzhwSSLrbrrr8wppump,DiGiCO,,,pump-fun,2026-11-23T03:22:57Z,2026-11-23T03:30:58Z,new_pools,,False
+3NZ7wyYxJKQNaVUAmEFoGYTMT2oyep4NMhJFREucring,R1NG,,,pump-fun,2026-11-23T03:22:48Z,2026-11-23T03:30:58Z,new_pools,,False
+6Sj3RxKR1FL1tdpYSQ2bfVRpJ9gc9hrE9xPXpD7Epump,Fox,,,pump-fun,2026-11-23T03:22:46Z,2026-11-23T03:30:58Z,new_pools,,False
+CrPh5x85t4RXYv3F1mrKzjAri34isDuFdyjPcLedpump,HANS,,,pump-fun,2026-11-23T03:22:43Z,2026-11-23T03:30:58Z,new_pools,,False
+9QUa8ADv9bHXTcFkgrGrWAoGcCe77miaB9oA3N24pump,HI,,,pump-fun,2026-11-23T03:22:43Z,2026-11-23T03:30:58Z,new_pools,,False
+5KBFmYYcLAFiM8YjrZALTN8PFXbTccDrqJFniCKppump,FLY,,,pump-fun,2026-11-23T03:22:40Z,2026-11-23T03:30:58Z,new_pools,,False
+2MSE2ZDPb2KYxg2d5Pk2uPAZUSZLrhMyKVeh6jjjpump,MYRON,,,pump-fun,2026-11-23T03:22:39Z,2026-11-23T03:30:58Z,new_pools,,False
+G4MwNXFJkJTNj53DiL2GKezHUZ5QeMr5GCKmxJZaNhxv,Rings,Rings,Ggj2MQtFvX3bvxxYJG3sJqtVWa7PVQZ4kqahb4SNZqyx,pumpswap,2026-11-22T17:21:19Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+AEQVFeGb3P2BE9hEC5zgQtPmuo7yjYj1CVBGvhUjcRR9,MCAT,Moon Cat,9Uie7BJ4N7LE8XZXTmdxKPY8X2hRjjrLnEJyfwoHsGz5,pumpswap,2026-11-22T19:01:03Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+2PhhxqAAMoXm8nUzug8eRS6jVeeKVrYGH2dPfbLFzKr8,ANT,Anthropic Coin,6yQ1sN55AWhqVvfSKxkpfqW2YQccvFuHwXH2YyG1MzAC,pumpswap,2026-11-21T19:41:54Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+46FasuRncua89ygpZHgCeKU69DBkCFfp1hwcFqGs8ddb,FSD v15,Tesla Reality View,5A7mKu7ST8HQhKhruj2e1pQ3VmyG2L9maXkg4h7g1ydG,pumpswap,2026-11-22T03:56:10Z,2026-11-23T03:30:58Z,top_volume,0.63,False
+J34swLLpyzStGz4q1yAyjhFujApqUKAYxJVK7zEUygCM,SIDOOR,SIDOOR,CPshQCShEp4yNLsq4ButhX6cFfS5edKd6f84obAb6K39,pumpswap,2026-11-22T09:39:28Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+5MqbKwaf8TrrYhtb7ZxHuBK7wENyxffhkxAH8C3b4yuE,XVIDIA,XVIDIA,DBzjipnF6NSskA5TqwnSUC9VkPtxtuHDMZhJp6djymgw,pumpswap,2026-11-22T18:55:22Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+Cz8gV3nymuvop9YzAwrzwRLxMdP2qjmU9oHUzkC5NvvS,Snowball,Snowball,4WqdDy1X92qz2954GSPDbqWCFFPDfsNEXpScXGGyG7KU,pumpswap,2026-11-22T04:46:43Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+HjjvrRzP4KmQxhi8s1MWn2pyCRaP7QfyMQzkXo3U3u1B,JAGENT,JAGENT,3rZpnuibcgN815ktrLeEbo5m55WDpomFLkaNSYmWBqGv,pumpswap,2026-11-22T14:15:11Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+7Hybws2HmX8mtqLV6veyh3VcxUsFMdxA1uWuLiuz4whG,ZOL,Zolana,H9braykr5Qk96yDe7xGRPupZyyFWeNtyC8zybmPEtsYh,pumpswap,2026-11-22T23:06:11Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+6WFtGCSnhDHtufXhCaPHbc2newgKxmt87eRSUZDURHfv,ACAT,Agentic Cat,6V5BPfY24YsmH1W6f39j97wF6pF5zFokmMPL9ZuoMxo6,pumpswap,2026-11-22T14:42:35Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+3esA88fPY1vaXdPTPxjsL76DYDA73DDSs6J6KfmHGfWx,MCAT,Moon Cat,rnGBa6xd89ptYWzsp7f3kRhmXaZgPcyTcN26Wo929cr,pumpswap,2026-11-22T15:51:08Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+C6rZceZKzd7HJJrzfpABFPMrqTPaGAV8D44pdsyxT2Eq,DCTY,DacityCoin,G2HvtDRauhCEBPrfkq8DH2NsEbNWJuBNRUThsU9ku4BP,pumpswap,2026-11-22T18:08:04Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+9YwwWWPkcnRp2aSJxKvCH91BALUt5cG8KFogfZpsUFpe,CLAUDIA,Claudia,DA1Qr5eM6jcF1kyXaakjLConGhMRHBn696zVFQWFiqT8,pumpswap,2026-11-22T15:12:29Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+GtYejECKAfDj6m74qxfyh2eXq1AxpBf6sii5DjBcgejG,CLAUDIA,Claudia,C7aAovF7Dw47RTXR9rWXsJyhRGkcfTi5zeEh1phetN5G,pumpswap,2026-11-22T18:14:02Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+Br7ocsCiiAyCFcuCBaRAhSLCioddpJajE9cTqQa7g2KU,WW,The Wizarding World,7CB8F7XCuTpr2wFpkDgpTCvennfXd5M5v1BrWxzWQBBY,pumpswap,2026-11-22T13:14:42Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+DE3LbTcvxo4DKcdMj4nFdwAYf2pcwQWJRr9tVEg1s5pQ,ZOL,ZOLANA,3cNgJSApLxd2CS4TgjAhPCScB8ypL7i2mGESHu4WVdbm,pumpswap,2026-11-22T22:56:04Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+934ebXak4Cb1J7UNNSVcMzNEztRR4GhKaimrXxdMQsy5,CATME,CATME,DMismMMckr5X9NjH2mbTmxaH9uhEdd7LsuWh2s7JD2ak,pumpswap,2026-11-22T18:46:20Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+7CXf1gfyAC2HoHurBkNNs8dWkg3YLJEGMM5Y53rDN72k,APPLE,Apple,HU6wXE5E7oyFQPnPaiUM6hczopkyCpXKsoKB7uCSSAPa,pumpswap,2026-11-23T01:11:34Z,2026-11-23T03:30:58Z,top_volume,164082.0,True
+BYPTnJqouGUf8aprD9h9bbWdue5VgjFik7ds7CKvf9Qx,MCAT,Moon Cat,Dc6a7H1xKu1PVGiWC34N57fWE3WnTEKjd6RdMc75iVmD,pumpswap,2026-11-22T15:21:28Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+3WxkJ3JRztQH3TnLtTBjW21ZwGCWZV1M13SgC9QgxCgH,NIAN,NIANbsc,385qh9hDNTsDUDj69YkG4CavvupiDMd8noQj1GGaaDVA,pumpswap,2026-11-23T01:04:11Z,2026-11-23T03:30:58Z,top_volume,231024.0,True
+81QvEpd65iGBHN95sWi6efrmsViwXf1BsWdKaeXwWbbo,Koop,Koop,8EspjGys1Rx433XwsnEx2SVkHChq3PXxUr1gm9s7oQqw,pumpswap,2026-11-22T16:33:07Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+BM95hXrPEdAdpDRq2YPAvVXwPoMfuRLvSY853duuZyyv,XVIDIA,XVIDIA,3SjWzTpzqVgXkmoitrjWX9EDrKgNbTYTb9dEt94rEy8F,pumpswap,2026-11-22T18:50:27Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+3aoVzicyutREo1eJHexyQwa7ZjNnNy6EBNyqwEQo6p7J,GTACAT,GTACat,2zhytjUfGKxvtKH2Aay82g4qmLwbnrwyrZ9XtDr51kc9,pumpswap,2026-11-22T06:56:21Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+5WHhiw7rSL2Y3KwktKSKmCup6synNnHPL1KmbwUwow8d,Rings,Rings,BFS1WjDKfwWg1kvKD78xau5T4agoXTEAchzj8Auev4dk,pumpswap,2026-11-22T16:00:51Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+Hcxrdr64HCnXVVzDET1XnjX21EsxJ8YNsvcojVYNbWYj,FSDV15,Tesla FSD V15,EgJt6rnoGbVsUUSVCg3jZAKtYoqshXbBgVs45sXSKkpn,pumpswap,2026-11-22T14:39:32Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+Dxyxbj3MbqeaM4J8n177iBAYmvZ3wh9qEhh8Ca2inBF,HIPPO,Hippocoin,7RZjTD8M4WkpoTAxY4dApCW8NWcJSuJW5RTZ9xjGcrY2,pumpswap,2026-11-22T10:26:07Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+Hy43pMhqAxci53tKVH9iktxPCN248soAd5V6teZRrDjP,GTACAT,GTACat,F6FtDCkSHf7TWGcAMMdEQn6yQSP9TU1pzXmk8Q8hf45d,pumpswap,2026-11-22T09:25:22Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+F8LBTcHavicdA8Py9KbnQpejbszJXMPvpexZWLASFTck,DCTY,DacityCoin,EFrPDQ9fkdc43K7QbFqEtLno5RtYwP9WP27Sya7KNcLL,pumpswap,2026-11-22T11:14:09Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+AJBw7M5S2UwLkdhair3kGt2nUVZTFEk1v7zJ7FQGqpR7,OpenIndex,OpenIndex.ai,82SXpHp6k28VUCk8syF2GdwmeAFkqe5r8ZYy2ijuTzV1,pumpswap,2026-11-22T21:02:41Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+3gMPKpWCiG4qsdzqAmrtBqmpyMrLf8Pk42L5LF5uFrSg,Koop,Koop,FVSugbVGcJzC3pXAg7qFkfYLfCix5eNe9ma6JnV6qj4w,pumpswap,2026-11-22T23:24:49Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+9GtiYgB7hK3VTznQbwskzB5jW3teMaLwyHPDoWubdQTw,OPTIMUS,Digital Optimus,8svRkhBd5ZqB4CFLRdNMx94DfT5fECNdeGmTJiMinTgT,pumpswap,2026-11-22T16:08:01Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+ChaY4QmYPpVwtGHTnzS3xTiSSt7fba7kSECaweuHGXfh,NFL,National Football League,BdJWCWf53EtS9ejLvKSSMVCXNTpM9nbuezBCZ2C2DRmn,pumpswap,2026-11-22T19:04:11Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+3i9jF2Ydz6BmjMpTxQHtMJFrgR6cfKVnP4yJqQxDwrVQ,cCAT,Confidential Cat,KEQG5jWzPHXmQXSxbW9ZG5Bd9T6ex1sqTsMFPozhHwG,pumpswap,2026-11-23T01:06:41Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+HTBUAADZFsuhuvticDLeJ3fPguzr1U8zhxynena9aNg,Singularit,Singularity,9UWJ2XNHM3AWcuCBifzf7zMPL4A5uF91TwRMUfQ3343i,pumpswap,2026-11-22T20:20:37Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+CsLnxCCBopH1RbBUFJCqk6jC9Ecu7KSbiZyeZVhLtzGo,FSD,FSD v15,Dwhm6UT6meGdPj3xNJw4KWRxiXdnQrJy1muyxw21424A,pumpswap,2026-11-22T08:12:56Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+NCroa5TdFVx98zLysAJfm14cNG8R9j6a5v5XzS4S5xd,MCAT,Moon Cat,FpEMpz7XsgMLXx81TyLo3xyApKNw9NxEWK8h2AYNdKDT,pumpswap,2026-11-22T20:13:26Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+Bakfadv5TcSPohJmr3LfNdyLdZU3gWyw7Pq1ZdhxAHX3,GTACAT,GTACAT,3H1qC8ea1vU227zXNLoy9DUJMNPn6CnTJsoEy9WM78DP,pumpswap,2026-11-22T12:35:09Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+Lo6YTV7oTEmkhKdzvebvHhSW3bagpFWhZxK5V5xQbqj,cCAT,Confidential Cat,3CJwJUZUs6WEB84LA3nk4kZdtDuHQHp2uETtvMpt7FFC,pumpswap,2026-11-23T01:51:37Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+4rqxdxiaortBRN2LBwGy5WpZNsRGYznzm5osyv722cRw,Huss,Huss,5uDCyUSFUrvzfS67fVRA4uL91KHrdf76p5gMqncn4dvq,pumpswap,2026-11-22T12:13:27Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+EsGYseJRmeJfoLVD45pBfDmtffxBP8vdnzbn2JonhCha,snowball,snowball-v2,6VYZz41yToD6d4ALsSgpv6ZYJDPUQrCN4dZ8e3GKHUM5,pumpswap,2026-11-22T06:56:01Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+JhW5hxgzbH4maCwcBDdp2zmNvzrx9c5Wc9PWedhnJg7,CATE,Catecoin,3WeQhMn5vAzbTSQw7q1YVZ6agbVxj9DkuxxoktDc6PgD,pumpswap,2026-11-22T04:25:22Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+SAi2vUVKNBpYJWmu5saL1grzLXp3qXrqdA8ovoTimKH,HIPPO,Hippocoin,61T2nfQhiEHVjgKwqVBvxG1FuvPxnWgBAE85wPWEidD1,pumpswap,2026-11-22T11:04:12Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+XsYzw7XHj8K2WHeoeNQVyevMmzjzXfcJ8tQ4FmdN1DL,ANTx,Anthropic xStock,3kMGXzS33hQNzbn6sXHbYNzxs95LHYv1UpK326f1phfW,raydium-clmm,2026-11-19T17:08:01Z,2026-11-23T03:30:58Z,top_volume,15097.0,True
+82fMAZZS2fkhbGSgDNMEcfn9rfSnjxFznRdWKczyz8GY,Hedge,Hedge,AL4ui5Cdn5r4263JDQwEQ4WUQbVLfz83qMuy62CbFSTt,pumpswap,2026-11-23T01:35:45Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+JAMX6baX3kHEw22oKxGRWEwMEYHNoHLRykHJVFvXC7Nj,GTACAT,GTACat,BHzHLsdhaBX3Tcgd3xh437EbrZCRCBFnKoJG6331WSBV,pumpswap,2026-11-22T05:04:09Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+7SpGzYfZ6nHy48WXfWJZMyTWVQM59aM4Lhep1ex6mhu,CATE,Catecoin,Czos8pGTf4g69xVDRvg3Y329NMFsRVjG1oQrxkca3ZSN,pumpswap,2026-11-23T01:30:53Z,2026-11-23T03:30:58Z,top_volume,0.0,False
+3PR537YCsjrDGfkaX8EfAYwLPSHa7FaX4MvH9kdDqMkh,XNR,xinoradex,41yT3U3pLBVkxxrixdHn9Zeon7U9MAgFA6jo1EJGhDvC,pumpswap,2026-11-22T21:17:19Z,2026-11-23T03:30:58Z,top_volume,0.0,False
